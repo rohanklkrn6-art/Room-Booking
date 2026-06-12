@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Timetable — TH Rosenheim</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#e8e8e8;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px 0}
+:root{
+  --or:#E8821A;--or-dk:#C96E10;--or-lt:#FFF0DC;
+  --g-bg:#d4edda;--g-tx:#1e6b3a;
+  --y-bg:#fff3c4;--y-tx:#7a5500;
+  --r-bg:#ffd6d6;--r-tx:#9b1c1c;
+  --b-bg:#dbeafe;--b-tx:#1e3a8a;
+  --p-bg:#ede9fe;--p-tx:#5b21b6;
+}
+.scene-btns{display:flex;gap:8px;margin-bottom:16px}
+.scene-btn{padding:8px 18px;border:2px solid var(--or);border-radius:20px;background:white;color:var(--or);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
+.scene-btn.active{background:var(--or);color:white}
+.phone{width:340px;height:700px;background:white;border-radius:36px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.phone-inner{width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden}
+.status-bar{background:var(--or);color:white;font-size:11px;font-weight:600;padding:8px 16px 4px;display:flex;justify-content:space-between;flex-shrink:0}
+.header{background:var(--or);color:white;padding:8px 16px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hdr-prof{background:var(--or-dk)}
+.hdr-title{font-size:17px;font-weight:700}
+.hdr-icon{font-size:20px;cursor:pointer;padding:4px}
+.cal-strip{background:white;padding:8px 0;border-bottom:1px solid #eee;flex-shrink:0}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;padding:0 10px 4px}
+.cal-nav-btn{background:none;border:none;font-size:20px;cursor:pointer;color:#333;line-height:1;padding:2px 4px}
+.cal-wk-lbl{font-size:11px;font-weight:600;color:#555}
+.cal-days{display:flex;justify-content:space-around;padding:0 2px}
+.cal-day{display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;padding:3px 6px;border-radius:10px}
+.cal-dn{font-size:9px;color:#999;font-weight:500;text-transform:uppercase}
+.cal-dd{font-size:14px;font-weight:600;color:#222;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.cal-day.today .cal-dd{background:var(--or);color:white}
+.cal-day.sel .cal-dd{background:#444;color:white}
+.cal-day.today.sel .cal-dd{background:var(--or);color:white}
+.cal-dot{width:5px;height:5px;background:var(--or);border-radius:50%;margin-top:1px}
+.cal-dot-ph{width:5px;height:5px;margin-top:1px}
+.tab-nav{display:flex;background:white;border-bottom:1px solid #eee;flex-shrink:0}
+.tab-item{flex:1;padding:9px 4px;text-align:center;font-size:11px;font-weight:600;color:#999;cursor:pointer;border-bottom:2px solid transparent;position:relative}
+.tab-item.active{color:var(--or);border-bottom-color:var(--or)}
+.notif-dot{position:absolute;top:7px;right:calc(50% - 18px);width:7px;height:7px;background:#e53e3e;border-radius:50%}
+.content{flex:1;overflow-y:auto;overflow-x:hidden}
+.screen{display:none;flex:1;flex-direction:column;overflow:hidden}
+.screen.on{display:flex}
+.alert{background:#fff3cd;border-left:3px solid var(--or);padding:7px 10px;margin:7px;border-radius:6px;font-size:11px;color:#7a4f00;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.tt-outer{padding:6px 0 6px 6px}
+.tt-wrap{display:flex}
+.tt-time-col{width:36px;flex-shrink:0}
+.tt-time-lbl{height:68px;display:flex;align-items:flex-start;padding-top:3px;font-size:9px;color:#bbb;font-weight:500}
+.tt-grid{flex:1;position:relative;min-height:544px;border-left:1px solid #f0f0f0}
+.tt-grid-line{position:absolute;left:0;right:0;border-top:1px solid #f0f0f0;height:0}
+.lb{position:absolute;left:3px;right:3px;border-radius:6px;padding:5px 6px;overflow:hidden;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.08)}
+.lb-title{font-size:10px;font-weight:700;line-height:1.2;margin-bottom:1px}
+.lb-room{font-size:9px;opacity:0.75}
+.lb-badge{font-size:8px;font-weight:600;border-radius:3px;padding:1px 4px;display:inline-block;margin-top:1px}
+.s-happening{background:var(--g-bg);color:var(--g-tx)}
+.s-cancelled{background:var(--r-bg);color:var(--r-tx)}
+.s-online{background:var(--y-bg);color:var(--y-tx)}
+.s-upcoming{background:var(--b-bg);color:var(--b-tx)}
+.rms-hdr{padding:8px 8px 4px}
+.srch-wrap{position:relative;margin-bottom:6px}
+.srch-inp{width:100%;padding:7px 28px 7px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:12px;font-family:'Inter',sans-serif;outline:none}
+.srch-clr{position:absolute;right:7px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:15px;cursor:pointer;color:#999;display:none}
+.pill-row{display:flex;gap:5px;overflow-x:auto;padding-bottom:5px;scrollbar-width:none}
+.pill-row::-webkit-scrollbar{display:none}
+.pill{padding:4px 10px;border:1px solid #ddd;border-radius:14px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;background:white;color:#555;line-height:1.4}
+.pill.active{background:var(--or);color:white;border-color:var(--or)}
+.pill-sub{display:block;font-size:9px;opacity:0.75;font-weight:400}
+.avail-tabs{display:flex;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:6px}
+.avail-tab{flex:1;padding:6px;text-align:center;font-size:11px;font-weight:600;cursor:pointer;color:#999;background:white}
+.avail-tab.active{background:var(--or);color:white}
+.cap-row{display:flex;gap:4px;margin-bottom:2px}
+.cap-btn{padding:3px 8px;border:1px solid #ddd;border-radius:10px;font-size:10px;cursor:pointer;background:white;color:#666;font-family:'Inter',sans-serif}
+.cap-btn.active{background:var(--or);color:white;border-color:var(--or)}
+.sec-title{font-size:10px;font-weight:700;color:#888;padding:6px 8px 3px;text-transform:uppercase;letter-spacing:0.5px}
+.room-card{margin:3px 7px;background:white;border-radius:10px;padding:9px;box-shadow:0 1px 4px rgba(0,0,0,0.07);cursor:pointer;border:1px solid #f0f0f0}
+.rc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px}
+.rc-name{font-size:13px;font-weight:700}
+.rc-meta{font-size:10px;color:#999;margin-top:1px}
+.rm-badge{font-size:9px;font-weight:600;padding:2px 7px;border-radius:10px;flex-shrink:0}
+.b-free{background:#d4f5d0;color:#1e6b3a}
+.b-occ{background:#ffd4d4;color:#9b1c1c}
+.b-few{background:#fff3cc;color:#7a5500}
+.b-soon{background:#ede9fe;color:#5b21b6}
+.occ-wrap{background:#f0f0f0;border-radius:3px;height:5px;margin:4px 0}
+.occ-bar{height:5px;border-radius:3px}
+.occ-g{background:#34a853}.occ-y{background:#fbbc04}.occ-r{background:#ea4335}
+.rc-stats{display:flex;justify-content:space-between;font-size:10px;color:#aaa;margin-bottom:5px}
+.feat-tags{display:flex;gap:3px;flex-wrap:wrap}
+.feat-tag{font-size:9px;background:#f5f5f5;padding:2px 5px;border-radius:6px;color:#666}
+.grp-row{display:flex;justify-content:space-between;align-items:center;background:#f0f7ff;border-radius:6px;padding:4px 7px;margin-top:5px}
+.grp-info{font-size:10px;color:#1e3a8a}
+.btn-join{font-size:10px;background:var(--or);color:white;border:none;border-radius:5px;padding:3px 8px;cursor:pointer;font-family:'Inter',sans-serif;font-weight:600}
+.no-res{text-align:center;padding:40px 20px;color:#bbb;font-size:13px}
+.grp-card{margin:3px 7px;background:white;border-radius:10px;padding:11px;box-shadow:0 1px 4px rgba(0,0,0,0.07);border:1px solid #f0f0f0}
+.gc-top{display:flex;justify-content:space-between;align-items:flex-start}
+.gc-name{font-size:13px;font-weight:700}
+.gc-meta{font-size:11px;color:#999;margin-top:2px}
+.btn-leave{font-size:11px;background:white;border:1px solid #e53e3e;color:#e53e3e;border-radius:6px;padding:3px 9px;cursor:pointer;font-family:'Inter',sans-serif}
+.tab-add-btn{width:calc(100% - 14px);margin:6px 7px;padding:10px;background:var(--or);color:white;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+.stat-cards{display:flex;gap:5px;padding:8px;overflow-x:auto;scrollbar-width:none}
+.stat-cards::-webkit-scrollbar{display:none}
+.stat-card{background:white;border-radius:9px;padding:9px 11px;min-width:68px;box-shadow:0 1px 4px rgba(0,0,0,0.07);text-align:center;flex-shrink:0}
+.stat-num{font-size:22px;font-weight:700;color:var(--or)}
+.stat-lbl{font-size:9px;color:#aaa;margin-top:1px}
+.lect-card{margin:3px 7px;background:white;border-radius:10px;padding:11px;box-shadow:0 1px 4px rgba(0,0,0,0.07);cursor:pointer;border:1px solid #f0f0f0}
+.lc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px}
+.lc-name{font-size:13px;font-weight:700}
+.lc-meta{font-size:11px;color:#999}
+.lc-stud{font-size:10px;color:#777;margin-top:3px}
+.st-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;flex-shrink:0}
+.bk-card{margin:3px 7px;background:white;border-radius:10px;padding:11px;box-shadow:0 1px 4px rgba(0,0,0,0.07);border:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center}
+.bk-room{font-size:13px;font-weight:700}
+.bk-meta{font-size:11px;color:#999;margin-top:2px}
+.btn-cancel-bk{font-size:11px;background:white;border:1px solid #e53e3e;color:#e53e3e;border-radius:6px;padding:4px 9px;cursor:pointer;font-family:'Inter',sans-serif}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.sheet{background:white;width:340px;min-height:260px;max-height:86vh;border-radius:20px 20px 0 0;overflow-y:auto;transform:translateY(100%);transition:transform 0.3s ease;padding-bottom:24px}
+.overlay.open .sheet{transform:translateY(0)}
+.sh-handle{width:36px;height:4px;background:#ddd;border-radius:2px;margin:10px auto 0}
+.sh-title{font-size:16px;font-weight:700;padding:10px 16px 12px}
+.sh-sec{padding:0 16px;margin-bottom:12px}
+.sh-lbl{font-size:10px;color:#999;font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px}
+.sh-row{display:flex;gap:7px;justify-content:space-between;margin-bottom:8px}
+.st-opt{flex:1;border:2px solid #e0e0e0;border-radius:9px;padding:9px 5px;text-align:center;cursor:pointer;font-size:11px;font-weight:600;line-height:1.5}
+.st-opt.sel{border-color:var(--or);background:var(--or-lt)}
+.sh-inp{width:100%;border:1px solid #ddd;border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;outline:none;margin-bottom:8px}
+.sh-ta{width:100%;border:1px solid #ddd;border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:none;height:65px}
+.sh-sel{width:100%;border:1px solid #ddd;border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Inter',sans-serif;outline:none;background:white;margin-bottom:8px}
+.sh-btn-row{display:flex;gap:8px;padding:0 16px;margin-top:10px}
+.btn-sec{flex:1;padding:10px;border:1px solid #ddd;border-radius:9px;font-size:13px;font-weight:600;background:white;cursor:pointer;font-family:'Inter',sans-serif}
+.btn-send{flex:1;padding:10px;border:none;border-radius:9px;font-size:13px;font-weight:600;background:var(--or);color:white;cursor:pointer;font-family:'Inter',sans-serif}
+.info-note{background:#fff8ee;border:1px solid #fde8c8;border-radius:7px;padding:7px 9px;font-size:11px;color:#7a4f00;margin-bottom:8px}
+.iot-graph{display:flex;align-items:flex-end;gap:3px;height:44px;margin-bottom:2px}
+.iot-bar{flex:1;border-radius:2px 2px 0 0;min-height:3px}
+.ib-g{background:#34a853}.ib-y{background:#fbbc04}.ib-r{background:#ea4335}
+.live-dot{display:inline-block;width:7px;height:7px;background:#22c55e;border-radius:50%;margin-right:4px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.sh-rm-hdr{padding:12px 16px 8px;display:flex;justify-content:space-between;align-items:flex-start}
+.sh-rm-name{font-size:18px;font-weight:700}
+.sh-rm-meta{font-size:12px;color:#999;margin-top:2px}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-80px);background:#1a1a1a;color:white;padding:9px 16px;border-radius:18px;font-size:12px;font-weight:500;z-index:999;transition:transform 0.3s ease;white-space:nowrap;font-family:'Inter',sans-serif;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="scene-btns">
+  <button class="scene-btn active" onclick="gotoScene('student')">👤 Student</button>
+  <button class="scene-btn" onclick="gotoScene('professor')">🎓 Professor</button>
+</div>
+
+<div class="phone">
+  <div class="phone-inner" id="app"></div>
+</div>
+
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="sheet" id="sheet" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div id="sheet-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var TODAY_REF = new Date();
+
+var ROOMS = [
+  {id:'A0.09',b:'A',f:0,type:'Seminar Room',cap:20,feat:['Power','Projector']},
+  {id:'A0.13',b:'A',f:0,type:'Seminar Room',cap:25,feat:['Power','Projector','Whiteboard']},
+  {id:'A0.05',b:'A',f:0,type:'Lecture Hall',cap:80,feat:['Projector','Accessible']},
+  {id:'A1.02',b:'A',f:1,type:'Seminar Room',cap:25,feat:['Power','Projector']},
+  {id:'A1.14',b:'A',f:1,type:'Seminar Room',cap:30,feat:['Power','Accessible','Whiteboard']},
+  {id:'A2.08',b:'A',f:2,type:'Seminar Room',cap:20,feat:['Power']},
+  {id:'A2.10',b:'A',f:2,type:'Seminar Room',cap:35,feat:['Power','Projector']},
+  {id:'B0.09',b:'B',f:0,type:'Lecture Hall',cap:100,feat:['Projector','Accessible']},
+  {id:'B0.12',b:'B',f:0,type:'Seminar Room',cap:25,feat:['Power','Whiteboard']},
+  {id:'B1.05',b:'B',f:1,type:'Seminar Room',cap:30,feat:['Power','Projector']},
+  {id:'B1.10',b:'B',f:1,type:'Seminar Room',cap:25,feat:['Power','Whiteboard']},
+  {id:'B203', b:'B',f:2,type:'Seminar Room',cap:30,feat:['Power','Projector','Whiteboard']},
+  {id:'B2.14',b:'B',f:2,type:'Seminar Room',cap:20,feat:['Power']},
+  {id:'C0.08',b:'C',f:0,type:'Seminar Room',cap:25,feat:['Power','Projector']},
+  {id:'C1.01',b:'C',f:1,type:'Study Room',cap:40,feat:['Power','Quiet Zone','WiFi']},
+  {id:'C1.05',b:'C',f:1,type:'Study Room',cap:30,feat:['Power','Quiet Zone']},
+  {id:'C1.10',b:'C',f:1,type:'Seminar Room',cap:30,feat:['Power','Projector']},
+  {id:'C2.03',b:'C',f:2,type:'Seminar Room',cap:20,feat:['Power','Whiteboard']}
+];
+
+var RS = {
+  'A0.13':{st:'free',  fu:'16:30',occ:0, nl:null,    iot:[2,3,1,0,0,1,0,0]},
+  'A0.09':{st:'occ',   fu:'14:30',occ:16,nl:'14:30', iot:[8,12,15,18,16,16,18,16]},
+  'A0.05':{st:'occ',   fu:'13:00',occ:60,nl:'13:00', iot:[40,55,70,65,60,60,62,60]},
+  'A1.02':{st:'soon',  fu:'16:30',occ:18,nl:null,    iot:[24,24,23,22,21,20,19,18]},
+  'A1.14':{st:'free',  fu:'13:00',occ:0, nl:'13:00', iot:[20,25,22,0,0,0,0,0]},
+  'A2.08':{st:'free',  fu:'15:00',occ:0, nl:'15:00', iot:[1,0,2,1,0,1,0,0]},
+  'A2.10':{st:'occ',   fu:'14:30',occ:28,nl:null,    iot:[15,22,28,30,28,28,29,28]},
+  'B0.09':{st:'free',  fu:'13:00',occ:0, nl:'13:00', iot:[80,90,0,0,0,0,0,0]},
+  'B0.12':{st:'few',   fu:'16:00',occ:12,nl:'16:00', iot:[5,8,10,12,12,12,11,12]},
+  'B1.05':{st:'soon',  fu:'16:30',occ:22,nl:null,    iot:[28,27,26,25,24,23,22,22]},
+  'B1.10':{st:'free',  fu:'14:30',occ:0, nl:'14:30', iot:[20,22,0,0,0,0,0,0]},
+  'B203': {st:'few',   fu:null,   occ:18,nl:null,    iot:[0,5,12,16,18,18,17,18]},
+  'B2.14':{st:'occ',   fu:null,   occ:20,nl:null,    iot:[10,15,18,20,20,20,20,20]},
+  'C0.08':{st:'free',  fu:'13:00',occ:0, nl:'13:00', iot:[0,2,1,0,1,0,2,0]},
+  'C1.01':{st:'few',   fu:null,   occ:26,nl:null,    iot:[20,22,25,26,26,27,26,26]},
+  'C1.05':{st:'few',   fu:null,   occ:21,nl:null,    iot:[12,15,18,20,21,21,20,21]},
+  'C1.10':{st:'occ',   fu:'14:30',occ:28,nl:null,    iot:[10,18,25,28,28,28,28,28]},
+  'C2.03':{st:'soon',  fu:'16:00',occ:15,nl:null,    iot:[18,18,17,17,16,16,15,15]}
+};
+
+var LECTS = {
+  0:[],
+  1:[
+    {id:'lt1',sub:'International Business Strategy',room:'B203',prof:'Prof. Müller',t:'09:45',e:'11:15',st:'happening',n:24}
+  ],
+  2:[
+    {id:'lw1',sub:'Cross-Cultural Management',room:'B1.05',prof:'Prof. Schmidt',t:'09:45',e:'11:15',st:'happening',n:22},
+    {id:'lw2',sub:'Business English for Managers',room:'A0.13',prof:'Ms. Smith',t:'11:30',e:'13:00',st:'cancelled',n:20},
+    {id:'lw3',sub:'Global Marketing',room:'A2.10',prof:'Prof. Müller',t:'13:45',e:'15:15',st:'online',n:24}
+  ],
+  3:[
+    {id:'ld1',sub:'International Finance',room:'C1.10',prof:'Prof. Schmidt',t:'09:45',e:'11:15',st:'happening',n:22},
+    {id:'ld2',sub:'Intercultural Communication',room:'A1.14',prof:'Prof. Schmidt',t:'13:45',e:'15:15',st:'upcoming',n:20}
+  ],
+  4:[]
+};
+
+var CHANGE_DAYS = {2:true};
+
+var S = {
+  view:'student',
+  stTab:0,
+  prTab:0,
+  wkOff:0,
+  selDay:(new Date().getDay()+6)%7,
+  rmSrch:'',
+  rmBldg:'all',
+  rmAvail:0,
+  rmCap:'all',
+  groups:[
+    {id:'g1',sub:'International Finance exam prep',room:'A0.13',time:'13:00',max:5,mem:3,joined:false}
+  ],
+  bookings:[],
+  lstatus:{},
+  grpDot:false
+};
+
+var selProfStatus = '';
+var toastTmr = null;
+
+function getLectSt(l){ return S.lstatus[l.id] || l.st; }
+function stLabel(s){
+  if(s==='happening') return 'Happening';
+  if(s==='cancelled') return 'Cancelled';
+  if(s==='online') return 'Online today';
+  if(s==='upcoming') return 'Upcoming';
+  return s;
+}
+function featIcon(f){
+  if(f==='Power') return '⚡';
+  if(f==='Projector') return '🖥';
+  if(f==='Accessible') return '♿';
+  if(f==='Quiet Zone') return '🤫';
+  if(f==='WiFi') return '📶';
+  if(f==='Whiteboard') return '📋';
+  return f;
+}
+function rmBadgeCls(st){
+  if(st==='free') return 'b-free';
+  if(st==='occ') return 'b-occ';
+  if(st==='few') return 'b-few';
+  if(st==='soon') return 'b-soon';
+  return '';
+}
+function rmBadgeLbl(st){
+  if(st==='free') return '🟢 Free';
+  if(st==='occ') return '🔴 Occupied';
+  if(st==='few') return '🟡 Few seats';
+  if(st==='soon') return '🟣 Soon free';
+  return '';
+}
+function t2m(t){ var p=t.split(':'); return parseInt(p[0])*60+parseInt(p[1]); }
+function m2top(m){ return ((m-540)/60)*68; }
+function dur2h(s,e){ return ((e-s)/60)*68; }
+
+function getWkStart(off){
+  var d=new Date(TODAY_REF);
+  var dow=d.getDay();
+  var mon=new Date(d);
+  mon.setDate(d.getDate()-(dow===0?6:dow-1)+off*7);
+  return mon;
+}
+function fmtDate(d){
+  var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return d.getDate()+' '+mn[d.getMonth()];
+}
+function isToday(d){
+  return d.getFullYear()===TODAY_REF.getFullYear()&&d.getMonth()===TODAY_REF.getMonth()&&d.getDate()===TODAY_REF.getDate();
+}
+function isTodayWeek(){ return S.wkOff===0; }
+
+function renderApp(){
+  var app=document.getElementById('app');
+  if(S.view==='student'){ app.innerHTML=renderStudent(); return; }
+  if(S.view==='professor'){ app.innerHTML=renderProf(); return; }
+}
+
+function renderCalStrip(){
+  var ws=getWkStart(S.wkOff);
+  var we=new Date(ws.getTime()+6*86400000);
+  var dns=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var h='<div class="cal-strip">'+
+    '<div class="cal-nav">'+
+    '<button class="cal-nav-btn" onclick="navWk(-1)">‹</button>'+
+    '<span class="cal-wk-lbl">'+fmtDate(ws)+' – '+fmtDate(we)+'</span>'+
+    '<button class="cal-nav-btn" onclick="navWk(1)">›</button>'+
+    '</div><div class="cal-days">';
+  for(var i=0;i<7;i++){
+    var dd=new Date(ws.getTime()+i*86400000);
+    var cls='cal-day';
+    if(isToday(dd)) cls+=' today';
+    if(i===S.selDay) cls+=' sel';
+    var dot=(isTodayWeek()&&CHANGE_DAYS[i])
+      ?'<span class="cal-dot"></span>'
+      :'<span class="cal-dot-ph"></span>';
+    h+='<div class="'+cls+'" onclick="selDay('+i+')">'+
+      '<span class="cal-dn">'+dns[i]+'</span>'+
+      '<span class="cal-dd">'+dd.getDate()+'</span>'+
+      dot+'</div>';
+  }
+  h+='</div></div>';
+  return h;
+}
+
+function renderStudent(){
+  var gd=S.grpDot?'<span class="notif-dot"></span>':'';
+  return '<div class="status-bar"><span>9:41</span><span>●●● WiFi</span></div>'+
+    '<div class="header" style="justify-content:center"><span class="hdr-title">My Timetable</span></div>'+
+    renderCalStrip()+
+    '<div class="tab-nav">'+
+    '<div class="tab-item'+(S.stTab===0?' active':'')+'" onclick="stTab(0)">My Plan</div>'+
+    '<div class="tab-item'+(S.stTab===1?' active':'')+'" onclick="stTab(1)">Rooms</div>'+
+    '<div class="tab-item'+(S.stTab===2?' active':'')+'" onclick="stTab(2)">Groups'+gd+'</div>'+
+    '</div>'+
+    '<div id="stcon" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">'+
+    renderStContent()+
+    '</div>'+
+    '<div style="background:var(--or);height:42px;flex-shrink:0;"></div>';
+}
+
+function renderStContent(){
+  if(S.stTab===0) return renderTT();
+  if(S.stTab===1) return renderRooms(false);
+  if(S.stTab===2) return renderGroups();
+  return '';
+}
+
+function renderTT(){
+  var h='<div class="content">';
+  if(S.selDay>=5){
+    h+='<div class="no-res">📅<br><br>No lectures on weekends</div></div>';
+    return h;
+  }
+  var ws=getWkStart(S.wkOff);
+  var selDate=new Date(ws.getTime()+S.selDay*86400000);
+  var cutoff=new Date(2026,6,11);
+  if(selDate>=cutoff){
+    h+='<div class="no-res">🎓<br><br>Semester ends July 10</div></div>';
+    return h;
+  }
+  var lects=LECTS[S.selDay]||[];
+  var isCurWk=isTodayWeek();
+  var hasCan=false,canRoom='';
+  if(isCurWk){ for(var i=0;i<lects.length;i++){ if(getLectSt(lects[i])==='cancelled'){hasCan=true;if(!canRoom)canRoom=lects[i].room;} } }
+  if(isCurWk&&hasCan){
+    h+='<div class="alert" onclick="showFreeRoom(\''+canRoom+'\')"><span>⚠️ '+canRoom+' is free – lecture cancelled</span><span style="color:var(--or);font-weight:700">→</span></div>';
+  }
+  if(!lects.length){
+    h+='<div class="no-res">📅<br><br>No lectures scheduled</div></div>';
+    return h;
+  }
+  h+='<div class="tt-outer"><div class="tt-wrap"><div class="tt-time-col">';
+  for(var hh=9;hh<=17;hh++){
+    h+='<div class="tt-time-lbl">'+(hh<10?'0'+hh:hh)+':00</div>';
+  }
+  h+='</div><div class="tt-grid">';
+  for(var gl=0;gl<=8;gl++){
+    h+='<div class="tt-grid-line" style="top:'+(gl*68)+'px"></div>';
+  }
+  for(var j=0;j<lects.length;j++){
+    var l=lects[j];
+    var st=isCurWk?getLectSt(l):(S.wkOff<0?'happening':'upcoming');
+    var sm=t2m(l.t),em=t2m(l.e);
+    var top=m2top(sm),ht=dur2h(sm,em);
+    h+='<div class="lb s-'+st+'" style="top:'+top+'px;height:'+ht+'px;" onclick="openLectSheet(\''+l.id+'\')">'+
+      '<div class="lb-title">'+l.sub+'</div>'+
+      '<div class="lb-room">'+l.room+'</div>'+
+      '<span class="lb-badge">'+stLabel(st)+'</span>'+
+      '</div>';
+  }
+  h+='</div></div></div></div>';
+  return h;
+}
+
+function renderRooms(isProf){
+  var h='<div class="content"><div class="rms-hdr">'+
+    '<div class="srch-wrap">'+
+    '<input class="srch-inp" id="rs" placeholder="🔍  Search rooms..." value="'+escHtml(S.rmSrch)+'" oninput="onRmSrch(this.value)">'+
+    '<button class="srch-clr" id="sc" style="display:'+(S.rmSrch?'block':'none')+';" onclick="clrRmSrch()">✕</button>'+
+    '</div>';
+  var bldgs=[['all','All','A+B+C'],['A','Bldg. A','Business'],['B','Bldg. B','Comp. Sci.'],['C','Bldg. C','Library']];
+  h+='<div class="pill-row">';
+  for(var i=0;i<bldgs.length;i++){
+    var bv=bldgs[i][0],bl=bldgs[i][1],bs=bldgs[i][2];
+    h+='<button class="pill'+(S.rmBldg===bv?' active':'')+'" onclick="setRmBldg(\''+bv+'\')">'+bl+'<span class="pill-sub">'+bs+'</span></button>';
+  }
+  h+='</div>';
+  h+='<div class="avail-tabs">'+
+    '<div class="avail-tab'+(S.rmAvail===0?' active':'')+'" onclick="setRmAvail(0)">🟢 Free now</div>'+
+    '<div class="avail-tab'+(S.rmAvail===1?' active':'')+'" onclick="setRmAvail(1)">📅 Free today</div>'+
+    '</div>';
+  var caps=[['all','All'],['small','≤ 25 seats'],['medium','26–50 seats'],['large','51+ seats']];
+  h+='<div class="cap-row">';
+  for(var k=0;k<caps.length;k++){
+    h+='<button class="cap-btn'+(S.rmCap===caps[k][0]?' active':'')+'" onclick="setRmCap(\''+caps[k][0]+'\')">'+caps[k][1]+'</button>';
+  }
+  h+='</div></div>';
+  var fil=filterRooms();
+  var now=[],soon=[],later=[];
+  for(var m=0;m<fil.length;m++){
+    var rs=RS[fil[m].id];
+    if(rs&&rs.st==='soon') soon.push(fil[m]);
+    else if(rs&&rs.st==='occ') later.push(fil[m]);
+    else now.push(fil[m]);
+  }
+  if(!fil.length){
+    h+='<div class="no-res">🔍 No rooms found</div>';
+  } else {
+    if(now.length){
+      h+='<div class="sec-title">Available now ('+now.length+')</div>';
+      for(var n=0;n<now.length;n++) h+=renderRoomCard(now[n],isProf);
+    }
+    if(soon.length){
+      h+='<div class="sec-title">Soon free ('+soon.length+')</div>';
+      for(var p=0;p<soon.length;p++) h+=renderRoomCard(soon[p],isProf);
+    }
+    if(later.length){
+      h+='<div class="sec-title">Free later today ('+later.length+')</div>';
+      for(var q=0;q<later.length;q++) h+=renderRoomCard(later[q],isProf);
+    }
+  }
+  h+='</div>';
+  return h;
+}
+
+function filterRooms(){
+  var res=[];
+  for(var i=0;i<ROOMS.length;i++){
+    var r=ROOMS[i],rs=RS[r.id];
+    if(!rs) continue;
+    if(S.rmSrch){
+      var q=S.rmSrch.toLowerCase();
+      var fm=r.id.toLowerCase().indexOf(q)!==-1||r.type.toLowerCase().indexOf(q)!==-1;
+      if(!fm){for(var fi=0;fi<r.feat.length;fi++){if(r.feat[fi].toLowerCase().indexOf(q)!==-1){fm=true;break;}}}
+      if(!fm) continue;
+    }
+    if(S.rmBldg!=='all'&&r.b!==S.rmBldg) continue;
+    if(S.rmCap==='small'&&r.cap>25) continue;
+    if(S.rmCap==='medium'&&(r.cap<=25||r.cap>50)) continue;
+    if(S.rmCap==='large'&&r.cap<=50) continue;
+    if(S.rmAvail===0&&rs.st==='occ') continue;
+    if(S.rmAvail===1&&rs.st==='occ'&&!rs.fu) continue;
+    res.push(r);
+  }
+  return res;
+}
+
+function renderRoomCard(r,isProf){
+  var rs=RS[r.id];
+  var pct=Math.round((rs.occ/r.cap)*100);
+  var bc=pct<50?'occ-g':(pct<80?'occ-y':'occ-r');
+  var fuTxt=rs.fu?(rs.st==='occ'?'Free from '+rs.fu:'Free until '+rs.fu):(rs.st==='occ'?'Occupied all day':rs.st==='few'?'Available all day':'All day');
+  var grp=null;
+  for(var g=0;g<S.groups.length;g++){ if(S.groups[g].room===r.id){grp=S.groups[g];break;} }
+  var h='<div class="room-card" onclick="openRmSheet(\''+r.id+'\','+isProf+')">'+
+    '<div class="rc-top"><div>'+
+    '<div class="rc-name">'+r.id+'</div>'+
+    '<div class="rc-meta">'+r.type+' · Bldg. '+r.b+' · '+r.cap+' seats</div>'+
+    '</div><span class="rm-badge '+rmBadgeCls(rs.st)+'">'+rmBadgeLbl(rs.st)+'</span></div>'+
+    '<div class="occ-wrap"><div class="occ-bar '+bc+'" style="width:'+pct+'%"></div></div>'+
+    '<div class="rc-stats"><span>'+rs.occ+'/'+r.cap+' occupied</span><span>'+fuTxt+'</span></div>'+
+    '<div class="feat-tags">';
+  for(var f=0;f<r.feat.length;f++) h+='<span class="feat-tag">'+featIcon(r.feat[f])+' '+r.feat[f]+'</span>';
+  h+='</div>';
+  if(grp){
+    if(isProf){
+      h+='<div class="grp-row"><div class="grp-info">👥 '+grp.sub+' · '+grp.mem+'/'+grp.max+'</div>'+
+        '<button class="btn-join" onclick="event.stopPropagation();openBkSheet(\''+r.id+'\')">Book room →</button></div>';
+    } else {
+      if(grp.joined){
+        h+='<div class="grp-row"><div class="grp-info">👥 '+grp.sub+' · '+grp.mem+'/'+grp.max+'</div>'+
+          '<button class="btn-join" disabled style="opacity:0.5;cursor:default;background:#aaa;border:none">✓ Joined</button></div>';
+      } else {
+        h+='<div class="grp-row"><div class="grp-info">👥 '+grp.sub+' · '+grp.mem+'/'+grp.max+'</div>'+
+          '<button class="btn-join" onclick="event.stopPropagation();joinGrp(\''+grp.id+'\')">Join</button></div>';
+      }
+    }
+  } else if(isProf){
+    h+='<div style="margin-top:5px"><button class="btn-join" onclick="event.stopPropagation();openBkSheet(\''+r.id+'\')">Book room →</button></div>';
+  }
+  h+='</div>';
+  return h;
+}
+
+function renderGroups(){
+  var h='<div style="display:flex;flex-direction:column;height:100%;">'+
+    '<div class="content" style="flex:1;padding-top:6px;">';
+  if(!S.groups.length) h+='<div class="no-res">👥<br><br>No study groups yet</div>';
+  for(var i=0;i<S.groups.length;i++){
+    var g=S.groups[i];
+    h+='<div class="grp-card"><div class="gc-top">'+
+      '<div><div class="gc-name">'+g.sub+'</div>'+
+      '<div class="gc-meta">📍 '+g.room+' · '+g.time+' · '+g.mem+'/'+g.max+' people</div></div>'+
+      (g.joined?'<button class="btn-leave" onclick="leaveGrp(\''+g.id+'\')">Leave</button>':'<button class="btn-join" onclick="joinGrp(\''+g.id+'\')">Join</button>')+
+      '</div></div>';
+  }
+  h+='</div>'+
+    '<div style="padding:6px 7px;flex-shrink:0;background:white;border-top:1px solid #eee;">'+
+    '<button class="tab-add-btn" onclick="openCrGrp()">＋ Create Study Group</button>'+
+    '</div></div>';
+  return h;
+}
+
+function openCrGrp(){
+  var free=[];
+  for(var i=0;i<ROOMS.length;i++){
+    var rs=RS[ROOMS[i].id];
+    if(rs&&(rs.st==='free'||rs.st==='few')) free.push(ROOMS[i].id);
+  }
+  if(!free.length){ for(var i=0;i<ROOMS.length;i++) free.push(ROOMS[i].id); }
+  var opts='';
+  for(var r=0;r<free.length;r++) opts+='<option>'+free[r]+'</option>';
+  var h='<div class="sh-sec"><div style="font-size:17px;font-weight:700;margin-bottom:3px">Create study group</div></div>'+
+    '<div class="sh-sec"><div class="sh-lbl">Subject / Topic</div>'+
+    '<input class="sh-inp" id="gs" placeholder="e.g. International Finance prep"></div>'+
+    '<div class="sh-sec"><div class="sh-lbl">Room</div><select class="sh-sel" id="gr">'+opts+'</select></div>'+
+    '<div class="sh-sec"><div class="sh-lbl">Start time</div><input class="sh-inp" id="gt" type="time" value="13:00"></div>'+
+    '<div class="sh-sec"><div class="sh-lbl">Max group size</div>'+
+    '<select class="sh-sel" id="gm"><option>2</option><option>3</option><option selected>5</option><option>8</option><option>10</option></select></div>'+
+    '<div class="sh-btn-row">'+
+    '<button class="btn-sec" onclick="closeSheet()">Cancel</button>'+
+    '<button class="btn-send" onclick="crGrp()">Create</button>'+
+    '</div>';
+  openSheet(h);
+}
+
+function crGrp(){
+  var sub=document.getElementById('gs').value.trim();
+  var room=document.getElementById('gr').value;
+  var time=document.getElementById('gt').value;
+  var mx=parseInt(document.getElementById('gm').value);
+  if(!sub){ showToast('Please enter a subject'); return; }
+  S.groups.push({id:'g'+Date.now(),sub:sub,room:room,time:time,max:mx,mem:1,joined:true});
+  S.grpDot=true;
+  closeSheet();
+  showToast('✓ Study group created');
+  S.stTab=2;
+  var sc=document.getElementById('stcon');
+  if(sc){ sc.innerHTML=renderStContent(); updStNav(); }
+}
+
+function renderProf(){
+  return '<div class="status-bar"><span>9:41</span><span>●●● WiFi</span></div>'+
+    '<div class="header hdr-prof" style="justify-content:center"><span class="hdr-title">Prof. Schmidt</span></div>'+
+    '<div class="tab-nav">'+
+    '<div class="tab-item'+(S.prTab===0?' active':'')+'" onclick="prTab(0)">My Lectures</div>'+
+    '<div class="tab-item'+(S.prTab===1?' active':'')+'" onclick="prTab(1)">Book Room</div>'+
+    '<div class="tab-item'+(S.prTab===2?' active':'')+'" onclick="prTab(2)">Bookings</div>'+
+    '</div>'+
+    '<div id="prcon" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">'+
+    renderPrContent()+
+    '</div>'+
+    '<div style="background:var(--or-dk);height:42px;flex-shrink:0;"></div>';
+}
+
+function renderPrContent(){
+  if(S.prTab===0) return renderPrLects();
+  if(S.prTab===1) return renderRooms(true);
+  if(S.prTab===2) return renderPrBks();
+  return '';
+}
+
+function renderPrLects(){
+  var todayIdx=(new Date().getDay()+6)%7;
+  var dayNames=['Monday','Tuesday','Wednesday','Thursday','Friday'];
+  var all=LECTS[todayIdx]||[];
+  var ls=[];
+  for(var i=0;i<all.length;i++){ if(all[i].prof==='Prof. Schmidt') ls.push(all[i]); }
+  var tot=ls.length,hap=0,can=0,onl=0;
+  for(var i=0;i<ls.length;i++){
+    var ss=getLectSt(ls[i]);
+    if(ss==='happening') hap++;
+    if(ss==='cancelled') can++;
+    if(ss==='online') onl++;
+  }
+  var h='<div class="content">'+
+    '<div class="stat-cards">'+
+    '<div class="stat-card"><div class="stat-num">'+tot+'</div><div class="stat-lbl">'+(dayNames[todayIdx]||'Today')+'</div></div>'+
+    '<div class="stat-card"><div class="stat-num" style="color:var(--g-tx)">'+hap+'</div><div class="stat-lbl">Active</div></div>'+
+    '<div class="stat-card"><div class="stat-num" style="color:var(--r-tx)">'+can+'</div><div class="stat-lbl">Cancelled</div></div>'+
+    '<div class="stat-card"><div class="stat-num" style="color:var(--y-tx)">'+onl+'</div><div class="stat-lbl">Online</div></div>'+
+    '</div>';
+  for(var j=0;j<ls.length;j++){
+    var l=ls[j],st=getLectSt(l);
+    h+='<div class="lect-card" onclick="openPrLectSheet(\''+l.id+'\')">'+
+      '<div class="lc-top"><div class="lc-name">'+l.sub+'</div>'+
+      '<span class="st-badge s-'+st+'">'+stLabel(st)+'</span></div>'+
+      '<div class="lc-meta">🕐 '+l.t+'–'+l.e+' · 📍 '+l.room+'</div>'+
+      '<div class="lc-stud">👥 '+l.n+' students</div>'+
+      '</div>';
+  }
+  h+='</div>';
+  return h;
+}
+
+function renderPrBks(){
+  var h='<div class="content" style="padding-top:6px;">';
+  if(!S.bookings.length) h+='<div class="no-res">📅<br><br>No active bookings</div>';
+  for(var i=0;i<S.bookings.length;i++){
+    var b=S.bookings[i];
+    h+='<div class="bk-card">'+
+      '<div><div class="bk-room">'+b.room+'</div><div class="bk-meta">'+b.purp+' · '+b.start+' · '+b.dur+'</div></div>'+
+      '<button class="btn-cancel-bk" onclick="canBk(\''+b.id+'\')">Cancel</button>'+
+      '</div>';
+  }
+  h+='<button class="tab-add-btn" style="background:var(--or-dk);" onclick="prTab(1)">＋ Book a room</button>';
+  h+='</div>';
+  return h;
+}
+
+
+function openSheet(html){
+  document.getElementById('sheet-body').innerHTML=html;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeSheet(){ document.getElementById('overlay').classList.remove('open'); }
+function handleOverlayClick(e){ if(e.target===document.getElementById('overlay')) closeSheet(); }
+
+function openLectSheet(id){
+  var l=findLect(id); if(!l) return;
+  var st=isTodayWeek()?getLectSt(l):(S.wkOff<0?'happening':'upcoming');
+  var h='<div class="sh-sec">'+
+    '<div style="font-size:17px;font-weight:700;margin-bottom:4px">'+l.sub+'</div>'+
+    '<div style="font-size:12px;color:#999">🕐 '+l.t+'–'+l.e+' · 📍 '+l.room+'</div>'+
+    '<div style="font-size:12px;color:#999;margin-top:2px">👤 '+l.prof+'</div>'+
+    '</div>'+
+    '<div class="sh-sec"><span class="st-badge s-'+st+'" style="font-size:12px;padding:4px 12px">'+stLabel(st)+'</span></div>';
+  if(st==='cancelled'){
+    h+='<div class="sh-sec"><div class="info-note">This lecture was cancelled. Room '+l.room+' is free today.</div>'+
+      '<button onclick="stTab(1);closeSheet()" style="width:100%;padding:9px;background:var(--or);color:white;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Show free rooms →</button></div>';
+  } else if(st==='online'){
+    h+='<div class="sh-sec"><div class="info-note">💻 Online today. Moodle link sent by email.</div></div>';
+  } else if(st==='upcoming'){
+    h+='<div class="sh-sec"><div class="info-note">⏰ Starts at '+l.t+' as scheduled.</div></div>';
+  } else {
+    h+='<div class="sh-sec"><div class="info-note">✅ Taking place as scheduled.</div></div>';
+  }
+  openSheet(h);
+}
+
+function openRmSheet(rid,isProf){
+  var r=findRoom(rid); if(!r) return;
+  var rs=RS[rid];
+  var pct=Math.round((rs.occ/r.cap)*100);
+  var bc=pct<50?'occ-g':(pct<80?'occ-y':'occ-r');
+  var h='<div class="sh-rm-hdr">'+
+    '<div><div class="sh-rm-name">'+r.id+'</div><div class="sh-rm-meta">'+r.type+' · Building '+r.b+' · '+r.cap+' seats</div></div>'+
+    '<span class="rm-badge '+rmBadgeCls(rs.st)+'">'+rmBadgeLbl(rs.st)+'</span>'+
+    '</div>'+
+    '<div class="sh-sec">'+
+    '<div style="font-size:12px;font-weight:600;margin-bottom:5px"><span class="live-dot"></span>Live Occupancy</div>'+
+    '<div class="occ-wrap" style="height:8px"><div class="occ-bar '+bc+'" style="width:'+pct+'%;height:8px"></div></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:11px;color:#999;margin-top:3px">'+
+    '<span>'+rs.occ+' / '+r.cap+' seats occupied</span><span>'+pct+'%</span></div></div>';
+  h+='<div class="sh-sec"><div class="sh-lbl">Occupancy last 2 hours</div><div class="iot-graph">';
+  for(var b=0;b<rs.iot.length;b++){
+    var bp=Math.round((rs.iot[b]/r.cap)*100);
+    var ibh=Math.max(3,Math.round((bp/100)*40));
+    var ic=bp<50?'ib-g':(bp<80?'ib-y':'ib-r');
+    h+='<div class="iot-bar '+ic+'" style="height:'+ibh+'px"></div>';
+  }
+  h+='</div><div style="display:flex;justify-content:space-between;font-size:9px;color:#bbb"><span>2h ago</span><span>now</span></div></div>';
+  h+='<div class="sh-sec"><div class="sh-lbl">Facilities</div><div class="feat-tags">';
+  for(var f=0;f<r.feat.length;f++) h+='<span class="feat-tag" style="font-size:11px;padding:3px 7px">'+featIcon(r.feat[f])+' '+r.feat[f]+'</span>';
+  h+='</div></div>';
+  if(rs.fu){var fuLbl=rs.st==='occ'?'Free from':'Free until';h+='<div class="sh-sec"><span style="font-size:12px;color:#888">🕐 '+fuLbl+' <strong>'+rs.fu+'</strong></span></div>';}
+  if(rs.nl&&rs.nl!==rs.fu) h+='<div class="sh-sec"><span style="font-size:12px;color:#888">📅 Next lecture: <strong>'+rs.nl+'</strong></span></div>';
+  var grp=null;
+  for(var g=0;g<S.groups.length;g++){ if(S.groups[g].room===rid){grp=S.groups[g];break;} }
+  if(isProf){
+    h+='<div class="sh-btn-row"><button class="btn-send" onclick="closeSheet();openBkSheet(\''+rid+'\')">Book room →</button></div>';
+  } else if(grp){
+    if(grp.joined){
+      h+='<div class="sh-btn-row"><button class="btn-sec" disabled style="opacity:0.5;cursor:default">✓ Joined</button></div>';
+    } else {
+      h+='<div class="sh-btn-row"><button class="btn-send" onclick="joinGrp(\''+grp.id+'\');closeSheet()">＋ Join group</button></div>';
+    }
+  }
+  openSheet(h);
+}
+
+function openPrLectSheet(id){
+  var l=findLect(id); if(!l) return;
+  var cur=getLectSt(l);
+  selProfStatus=cur;
+  var h='<div class="sh-sec">'+
+    '<div style="font-size:17px;font-weight:700;margin-bottom:4px">'+l.sub+'</div>'+
+    '<div style="font-size:12px;color:#999">🕐 '+l.t+'–'+l.e+' · 📍 '+l.room+' · 👥 '+l.n+' students</div>'+
+    '</div>'+
+    '<div class="sh-sec"><div class="info-note">📢 Your update will be sent immediately to all students.</div></div>'+
+    '<div class="sh-sec"><div class="sh-lbl">Update status</div><div class="sh-row">'+
+    '<div class="st-opt'+(cur==='happening'?' sel':'')+'" id="so-h" onclick="pickSt(\'happening\')">✅<br>Happening</div>'+
+    '<div class="st-opt'+(cur==='cancelled'?' sel':'')+'" id="so-c" onclick="pickSt(\'cancelled\')">✕<br>Cancelled</div>'+
+    '<div class="st-opt'+(cur==='online'?' sel':'')+'" id="so-o" onclick="pickSt(\'online\')">💻<br>Online</div>'+
+    '</div></div>'+
+    '<div class="sh-sec"><div class="sh-lbl">Message (optional)</div>'+
+    '<textarea class="sh-ta" id="pmsg" placeholder="Message to students..."></textarea></div>'+
+    '<div class="sh-btn-row">'+
+    '<button class="btn-sec" onclick="closeSheet()">Cancel</button>'+
+    '<button class="btn-send" onclick="savePrSt(\''+id+'\')">Send</button>'+
+    '</div>';
+  openSheet(h);
+}
+
+function pickSt(st){
+  selProfStatus=st;
+  var ids=['so-h','so-c','so-o'],sts=['happening','cancelled','online'];
+  for(var i=0;i<ids.length;i++){
+    var el=document.getElementById(ids[i]);
+    if(el) el.className='st-opt'+(sts[i]===st?' sel':'');
+  }
+}
+
+function savePrSt(id){
+  if(!selProfStatus){ showToast('Please select a status'); return; }
+  S.lstatus[id]=selProfStatus;
+  closeSheet();
+  showToast('✓ Status updated — notification sent');
+  var pc=document.getElementById('prcon');
+  if(pc) pc.innerHTML=renderPrContent();
+}
+
+function openBkSheet(rid){
+  var h='<div class="sh-sec"><div style="font-size:17px;font-weight:700;margin-bottom:3px">Book room '+rid+'</div>'+
+    '<div style="font-size:12px;color:#999">Ad-hoc booking</div></div>'+
+    '<div class="sh-sec"><div class="sh-lbl">Purpose</div>'+
+    '<select class="sh-sel" id="bk-pur">'+
+    '<option>Office hours</option><option>Extra lecture</option><option>Team meeting</option><option>Exam preparation</option>'+
+    '</select></div>'+
+    '<div class="sh-sec"><div class="sh-lbl">Start time</div>'+
+    '<input class="sh-inp" id="bk-st" type="time" value="11:00"></div>'+
+    '<div class="sh-sec"><div class="sh-lbl">Duration</div>'+
+    '<select class="sh-sel" id="bk-dur">'+
+    '<option>30 minutes</option><option selected>60 minutes</option><option>90 minutes</option><option>120 minutes</option>'+
+    '</select></div>'+
+    '<div class="sh-sec"><div class="sh-lbl">Note (optional)</div>'+
+    '<textarea class="sh-ta" id="bk-note" placeholder="Optional note..."></textarea></div>'+
+    '<div class="sh-btn-row">'+
+    '<button class="btn-sec" onclick="closeSheet()">Cancel</button>'+
+    '<button class="btn-send" onclick="confBk(\''+rid+'\')">Book</button>'+
+    '</div>';
+  openSheet(h);
+}
+
+function confBk(rid){
+  var pur=document.getElementById('bk-pur').value;
+  var st=document.getElementById('bk-st').value;
+  var dur=document.getElementById('bk-dur').value;
+  var prevSt=RS[rid]?RS[rid].st:'free';
+  S.bookings.push({id:'b'+Date.now(),room:rid,purp:pur,start:st,dur:dur,prevSt:prevSt});
+  if(RS[rid]){ RS[rid].st='occ'; }
+  closeSheet();
+  showToast('✓ Room '+rid+' booked');
+  var pc=document.getElementById('prcon');
+  if(pc) pc.innerHTML=renderPrContent();
+}
+
+function canBk(id){
+  for(var i=0;i<S.bookings.length;i++){
+    if(S.bookings[i].id===id){
+      var rid=S.bookings[i].room;
+      if(RS[rid]) RS[rid].st=S.bookings[i].prevSt||'free';
+      S.bookings.splice(i,1);
+      break;
+    }
+  }
+  showToast('Booking cancelled');
+  var pc=document.getElementById('prcon');
+  if(pc) pc.innerHTML=renderPrContent();
+}
+
+
+function joinGrp(id){
+  for(var i=0;i<S.groups.length;i++){
+    if(S.groups[i].id===id){
+      if(S.groups[i].joined) return;
+      S.groups[i].joined=true;
+      S.groups[i].mem++;
+      S.grpDot=true;
+      break;
+    }
+  }
+  showToast('✓ Joined group');
+  closeSheet();
+  var sc=document.getElementById('stcon');
+  if(sc){ sc.innerHTML=renderStContent(); updStNav(); }
+}
+
+function leaveGrp(id){
+  for(var i=0;i<S.groups.length;i++){
+    if(S.groups[i].id===id){ S.groups[i].joined=false; S.groups[i].mem=Math.max(0,S.groups[i].mem-1); break; }
+  }
+  showToast('Left group');
+  var sc=document.getElementById('stcon');
+  if(sc){ sc.innerHTML=renderStContent(); updStNav(); }
+}
+
+function stTab(idx){
+  S.stTab=idx;
+  if(idx===2) S.grpDot=false;
+  var sc=document.getElementById('stcon');
+  if(sc){ sc.innerHTML=renderStContent(); updStNav(); }
+}
+
+function showFreeRoom(roomId){
+  S.rmSrch=roomId; S.rmAvail=0; S.rmBldg='all'; S.rmCap='all'; S.stTab=1;
+  var sc=document.getElementById('stcon');
+  if(sc){ sc.innerHTML=renderStContent(); updStNav(); }
+}
+
+function updStNav(){
+  var items=document.querySelectorAll('.tab-item');
+  if(items.length<3) return;
+  for(var i=0;i<3;i++) items[i].className='tab-item'+(S.stTab===i?' active':'');
+  var gd=S.grpDot?'<span class="notif-dot"></span>':'';
+  items[2].innerHTML='Groups'+gd;
+}
+
+function prTab(idx){
+  S.prTab=idx;
+  var pc=document.getElementById('prcon');
+  if(pc) pc.innerHTML=renderPrContent();
+  var items=document.querySelectorAll('.tab-item');
+  for(var i=0;i<3;i++) if(items[i]) items[i].className='tab-item'+(S.prTab===i?' active':'');
+}
+
+function navWk(dir){
+  var nw=S.wkOff+dir;
+  if(nw<-4||nw>4) return;
+  S.wkOff=nw;
+  if(S.wkOff===0) S.selDay=(new Date().getDay()+6)%7;
+  renderApp();
+}
+
+function selDay(idx){
+  S.selDay=idx;
+  renderApp();
+}
+
+function gotoScene(sc){
+  var btns=document.querySelectorAll('.scene-btn');
+  var map={student:0,professor:1};
+  for(var i=0;i<btns.length;i++) btns[i].classList.remove('active');
+  if(map[sc]!==undefined) btns[map[sc]].classList.add('active');
+  if(sc==='student'){ S.view='student'; S.stTab=0; }
+  else if(sc==='professor'){ S.view='professor'; S.prTab=0; }
+  renderApp();
+}
+
+function onRmSrch(v){
+  S.rmSrch=v;
+  refreshRms();
+  var inp=document.getElementById('rs');
+  if(inp){ inp.focus(); inp.setSelectionRange(v.length,v.length); }
+}
+function clrRmSrch(){ S.rmSrch=''; refreshRms(); }
+function setRmBldg(v){ S.rmBldg=v; refreshRms(); }
+function setRmAvail(v){ S.rmAvail=v; refreshRms(); }
+function setRmCap(v){ S.rmCap=v; refreshRms(); }
+
+function refreshRms(){
+  var isP=(S.view==='professor');
+  var con=isP?document.getElementById('prcon'):document.getElementById('stcon');
+  if(con){ if(isP) con.innerHTML=renderPrContent(); else con.innerHTML=renderStContent(); }
+}
+
+function findLect(id){
+  for(var d=0;d<5;d++){
+    var ls=LECTS[d]||[];
+    for(var i=0;i<ls.length;i++) if(ls[i].id===id) return ls[i];
+  }
+  return null;
+}
+function findRoom(id){ for(var i=0;i<ROOMS.length;i++) if(ROOMS[i].id===id) return ROOMS[i]; return null; }
+
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  if(toastTmr) clearTimeout(toastTmr);
+  toastTmr=setTimeout(function(){ t.classList.remove('show'); },2500);
+}
+
+renderApp();
+</script>
+</body>
+</html>
