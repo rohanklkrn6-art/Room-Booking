@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useReducer } from 'react';
 import { LECTS } from '../data/lectures';
 import { getInitialSelDay, getNowMinutes } from '../utils/time';

@@ -17,7 +17,7 @@ function ToastManager() {
     if (!show) return
     const t = setTimeout(() => dispatch({ type: 'HIDE_TOAST' }), 2200)
     return () => clearTimeout(t)
-  }, [show, msg])
+  }, [show, msg, dispatch])
   return <Toast message={msg} show={show} />
 }
 
@@ -26,7 +26,7 @@ function Ticker() {
   useEffect(() => {
     const t = setInterval(() => dispatch({ type: 'TICK' }), 60000)
     return () => clearInterval(t)
-  }, [])
+  }, [dispatch])
   return null
 }
 
