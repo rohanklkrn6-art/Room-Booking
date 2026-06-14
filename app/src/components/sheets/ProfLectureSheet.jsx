@@ -30,7 +30,7 @@ export default function ProfLectureSheet({ data }) {
   if (!lecture) return null;
 
   function send() {
-    dispatch({ type: 'SET_LECT_STATUS', payload: { id: lecture.id, status: picked } });
+    dispatch({ type: 'SET_LECT_STATUS', payload: { id: lecture.id, status: picked, note: msg } });
     dispatch({ type: 'CLOSE_SHEET' });
     dispatch({ type: 'SHOW_TOAST', payload: 'Status updated · Students notified' });
   }

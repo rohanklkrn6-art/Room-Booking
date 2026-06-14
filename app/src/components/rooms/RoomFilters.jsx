@@ -7,11 +7,12 @@ const BUILDINGS = [
   { key: 'C',   label: 'Building C',    sub: 'Library' },
 ];
 
+// Group-size buckets: user thinks "I need space for N people"
 const CAP_BTNS = [
-  { key: 'all', label: 'All' },
-  { key: 's',   label: '≤30' },
-  { key: 'm',   label: '31–60' },
-  { key: 'l',   label: '60+' },
+  { key: 'all', label: 'Any' },
+  { key: 'xs',  label: '1–4' },
+  { key: 's',   label: '5–8' },
+  { key: 'l',   label: '9+' },
 ];
 
 export default function RoomFilters() {
@@ -66,7 +67,7 @@ export default function RoomFilters() {
       </div>
 
       <div className="cap-row">
-        <span className="cap-lbl">Seats</span>
+        <span className="cap-lbl">Group</span>
         {CAP_BTNS.map(({ key, label }) => (
           <button
             key={key}

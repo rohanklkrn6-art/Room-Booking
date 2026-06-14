@@ -15,7 +15,7 @@ function ToastManager() {
   const { show, msg } = state.toast
   useEffect(() => {
     if (!show) return
-    const t = setTimeout(() => dispatch({ type: 'HIDE_TOAST' }), 2200)
+    const t = setTimeout(() => dispatch({ type: 'HIDE_TOAST' }), 5000)
     return () => clearTimeout(t)
   }, [show, msg, dispatch])
   return <Toast message={msg} show={show} />

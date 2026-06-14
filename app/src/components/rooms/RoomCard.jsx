@@ -1,7 +1,7 @@
 const BADGE = {
   free: { cls: 'b-free', label: 'Free' },
   few:  { cls: 'b-few',  label: 'Few Seats' },
-  soon: { cls: 'b-soon', label: 'Soon Free' },
+  soon: { cls: 'b-soon', label: 'Soon Occupied' },
   occ:  { cls: 'b-occ',  label: 'Occupied' },
 };
 
@@ -15,16 +15,16 @@ function occBarColor(occ, cap) {
 function statusLine(status) {
   const { st, fu, nl } = status;
   if (st === 'free' || st === 'few') return nl ? `Free until ${nl}` : 'Free all day';
-  if (st === 'soon') return fu ? `Free from ${fu}` : null;
+  if (st === 'soon') return nl ? `Free until ${nl}` : 'Occupied soon';
   if (st === 'occ')  return fu ? `Free from ${fu}` : null;
   return null;
 }
 
 export default function RoomCard({ room, status, groups, isProf, onTap, onJoinGroup }) {
-  const badge = BADGE[status.st] || BADGE.occ;
-  const occPct = Math.min(100, Math.round((status.occ / room.cap) * 100));
+  const badge   = BADGE[status.st] || BADGE.occ;
+  const occPct  = Math.min(100, Math.round((status.occ / room.cap) * 100));
   const barColor = occBarColor(status.occ, room.cap);
-  const subline = statusLine(status);
+  const subline  = statusLine(status);
 
   return (
     <div className="room-card" onClick={onTap}>

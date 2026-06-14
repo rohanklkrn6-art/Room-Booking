@@ -1,7 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useReducer } from 'react';
-import { LECTS } from '../data/lectures';
-import { getInitialSelDay, getNowMinutes } from '../utils/time';
+import { getInitialSelDay, getNowMinutes, t2m, m2t } from '../utils/time';
 
 const initialState = {
   view: 'student',
@@ -19,6 +18,7 @@ const initialState = {
   ],
   bookings: [],
   lstatus: {},
+  lnotes: {},
   grpDot: false,
   roomStatuses: {}, // sparse: only manual professor overrides (bookings, explicit cancels)
   sheetType: null,
@@ -53,7 +53,7 @@ function reducer(state, action) {
 
     case 'NAV_WK': {
       const next = state.wkOff + action.payload;
-      if (next < -4 || next > 4) return state;
+      if (next < -4 || next > 7) return state; // wkOff 7 = week of July 28, covers semester end (31 Jul)
       return {
         ...state,
         wkOff: next,
@@ -115,37 +115,26 @@ function reducer(state, action) {
       };
 
     case 'SET_LECT_STATUS': {
-      const { id, status } = action.payload;
-      let lectureRoom = null;
-      for (const day of Object.values(LECTS)) {
-        const l = day.find(x => x.id === id);
-        if (l) { lectureRoom = l.room; break; }
-      }
-      const updatedRoomStatuses = { ...state.roomStatuses };
-      if (lectureRoom) {
-        if (status === 'cancelled' || status === 'online') {
-          // Override: force room free because professor cancelled/moved online
-          updatedRoomStatuses[lectureRoom] = { st: 'free', occ: 0, fu: null, nl: null };
-        } else {
-          // Happening: remove override, let timetable-computed status take over
-          delete updatedRoomStatuses[lectureRoom];
-        }
-      }
+      const { id, status, note } = action.payload;
+      const nextNotes = note?.trim()
+        ? { ...state.lnotes, [id]: note.trim() }
+        : state.lnotes;
       return {
         ...state,
         lstatus: { ...state.lstatus, [id]: status },
-        roomStatuses: updatedRoomStatuses,
+        lnotes: nextNotes,
       };
     }
 
     case 'ADD_BOOKING': {
       const { booking, roomId } = action.payload;
+      const endM = t2m(booking.startTime) + booking.durationM;
       return {
         ...state,
         bookings: [...state.bookings, { ...booking, day: state.selDay }],
         roomStatuses: {
           ...state.roomStatuses,
-          [roomId]: { st: 'occ', occ: booking.size || 1, fu: null, nl: null },
+          [roomId]: { st: 'occ', occ: booking.size || 5, fu: m2t(endM), nl: null },
         },
       };
     }

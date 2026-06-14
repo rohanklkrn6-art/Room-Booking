@@ -8,7 +8,7 @@ export default function ProfLecturesView() {
   const { selDay, lstatus, wkOff, nowM } = state;
 
   const lectures = LECTS[selDay] || [];
-  const isToday  = wkOff === 0 && selDay === getTodayIndex() && getTodayIndex() !== -1;
+  const isToday  = wkOff === 0 && selDay === getTodayIndex();
 
   function effectiveSt(l) {
     return computeLectureStatus(l, isToday, lstatus, nowM);

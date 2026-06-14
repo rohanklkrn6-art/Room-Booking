@@ -11,7 +11,7 @@ export default function TimetableGrid() {
   const { selDay, lstatus, wkOff, nowM } = state;
 
   const lectures = LECTS[selDay] || [];
-  const isToday  = wkOff === 0 && selDay === getTodayIndex() && getTodayIndex() !== -1;
+  const isToday  = wkOff === 0 && selDay === getTodayIndex();
 
   return (
     <div className="tt-outer">

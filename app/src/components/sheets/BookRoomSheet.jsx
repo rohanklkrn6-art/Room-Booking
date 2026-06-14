@@ -1,32 +1,38 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { m2t, t2m } from '../../utils/time';
 
 export default function BookRoomSheet({ data }) {
   const { dispatch } = useApp();
   const { roomId } = data;
   const [purpose,   setPurpose]   = useState('Office hours');
-  const [startTime, setStartTime] = useState('11:00');
-  const [duration,  setDuration]  = useState('60 minutes');
+  const [startTime, setStartTime] = useState('13:00');
+  const [durationM, setDurationM] = useState(60);
+  const [size,      setSize]      = useState(5);
   const [note,      setNote]      = useState('');
+
+  const endTime = m2t(t2m(startTime) + durationM);
 
   function confirm() {
     const booking = {
       id: `bk-${Date.now()}`,
       room: roomId,
       purpose,
-      time: `${startTime} · ${duration}`,
+      startTime,
+      durationM,
+      size,
       note,
     };
     dispatch({ type: 'ADD_BOOKING', payload: { booking, roomId } });
     dispatch({ type: 'CLOSE_SHEET' });
-    dispatch({ type: 'SHOW_TOAST', payload: `${roomId} booked` });
+    dispatch({ type: 'SHOW_TOAST', payload: `${roomId} booked · ${startTime}–${endTime}` });
   }
 
   return (
     <>
       <div className="sh-sec">
-        <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 3 }}>Book room {roomId}</div>
-        <div style={{ fontSize: 12, color: '#999' }}>Ad-hoc booking</div>
+        <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 3 }}>Book {roomId}</div>
+        <div style={{ fontSize: 12, color: '#999' }}>Ad-hoc booking · {startTime}–{endTime}</div>
       </div>
 
       <div className="sh-sec">
@@ -51,11 +57,24 @@ export default function BookRoomSheet({ data }) {
 
       <div className="sh-sec">
         <div className="sh-lbl">Duration</div>
-        <select className="sh-sel" value={duration} onChange={e => setDuration(e.target.value)}>
-          <option>30 minutes</option>
-          <option>60 minutes</option>
-          <option>90 minutes</option>
-          <option>120 minutes</option>
+        <select className="sh-sel" value={durationM} onChange={e => setDurationM(Number(e.target.value))}>
+          <option value={30}>30 minutes</option>
+          <option value={60}>60 minutes</option>
+          <option value={90}>90 minutes</option>
+          <option value={120}>120 minutes</option>
+        </select>
+      </div>
+
+      <div className="sh-sec">
+        <div className="sh-lbl">Attendees</div>
+        <select className="sh-sel" value={size} onChange={e => setSize(Number(e.target.value))}>
+          <option value={2}>2 people</option>
+          <option value={3}>3 people</option>
+          <option value={5}>5 people</option>
+          <option value={8}>8 people</option>
+          <option value={10}>10 people</option>
+          <option value={15}>15 people</option>
+          <option value={20}>20 people</option>
         </select>
       </div>
 
