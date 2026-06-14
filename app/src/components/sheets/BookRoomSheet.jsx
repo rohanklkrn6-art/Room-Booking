@@ -1,31 +1,34 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { m2t, t2m } from '../../utils/time';
+import ConfirmModal from '../ConfirmModal';
+import { sanitise } from '../../utils/sanitise';
 
 export default function BookRoomSheet({ data }) {
   const { dispatch } = useApp();
   const { roomId } = data;
-  const [purpose,   setPurpose]   = useState('Office hours');
-  const [startTime, setStartTime] = useState('13:00');
-  const [durationM, setDurationM] = useState(60);
-  const [size,      setSize]      = useState(5);
-  const [note,      setNote]      = useState('');
+
+  const [purpose,     setPurpose]     = useState('Office hours');
+  const [startTime,   setStartTime]   = useState('13:00');
+  const [durationM,   setDurationM]   = useState(60);
+  const [size,        setSize]        = useState(5);
+  const [note,        setNote]        = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const endTime = m2t(t2m(startTime) + durationM);
 
-  function confirm() {
+  function doBook() {
     const booking = {
-      id: `bk-${Date.now()}`,
-      room: roomId,
-      purpose,
+      id:        `bk-${Date.now()}`,
+      room:      roomId,
+      purpose:   sanitise(purpose, 100),
       startTime,
       durationM,
       size,
-      note,
+      note:      sanitise(note, 300),
     };
     dispatch({ type: 'ADD_BOOKING', payload: { booking, roomId } });
     dispatch({ type: 'CLOSE_SHEET' });
-    dispatch({ type: 'SHOW_TOAST', payload: `${roomId} booked · ${startTime}–${endTime}` });
   }
 
   return (
@@ -79,19 +82,30 @@ export default function BookRoomSheet({ data }) {
       </div>
 
       <div className="sh-sec">
-        <div className="sh-lbl">Note (optional)</div>
+        <div className="sh-lbl">Note (optional, max 300 chars)</div>
         <textarea
           className="sh-ta"
           placeholder="Optional note…"
           value={note}
+          maxLength={300}
           onChange={e => setNote(e.target.value)}
         />
       </div>
 
       <div className="sh-btn-row">
         <button className="btn-sec" onClick={() => dispatch({ type: 'CLOSE_SHEET' })}>Cancel</button>
-        <button className="btn-send" onClick={confirm}>Book</button>
+        <button className="btn-send" onClick={() => setConfirmOpen(true)}>Book</button>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        title={`Book ${roomId}?`}
+        body={`${purpose} · ${startTime}–${endTime} · ${size} ${size === 1 ? 'person' : 'people'}`}
+        confirmLabel="Confirm booking"
+        danger={false}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => { setConfirmOpen(false); doBook(); }}
+      />
     </>
   );
 }

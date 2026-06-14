@@ -26,7 +26,7 @@ export default function CreateGroupSheet() {
 
     // Block group creation if the chosen room has a lecture at the chosen time
     const dayLects = ALL_LECTS[getTodayIndex()] || [];
-    if (isRoomOccupiedAtTime(roomId, time, dayLects, state.lstatus)) {
+    if (isRoomOccupiedAtTime(roomId, time, dayLects, state.lstatus, state.lrooms)) {
       setError(`${roomId} has a lecture at ${time}. Pick a different room or time.`);
       return;
     }

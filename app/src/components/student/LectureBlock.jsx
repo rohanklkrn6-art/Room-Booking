@@ -16,12 +16,12 @@ function dur2h(s, e) {
   return ((e - s) / 60) * 68;
 }
 
-export default function LectureBlock({ lecture, effectiveStatus, onTap }) {
+export default function LectureBlock({ lecture, effectiveStatus, effectiveRoom, onTap }) {
   const startM = t2m(lecture.t);
   const endM   = t2m(lecture.e);
   const top    = m2top(startM);
   const height = dur2h(startM, endM);
-  const roomLabel = effectiveStatus === 'online' ? 'Online' : lecture.room;
+  const roomLabel = effectiveStatus === 'online' ? 'Online' : (effectiveRoom ?? lecture.room);
 
   return (
     <div

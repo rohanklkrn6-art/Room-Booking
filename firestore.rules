@@ -1,0 +1,80 @@
+// Firestore Security Rules — Smart Timetable TH Rosenheim
+//
+// Deploy with: firebase deploy --only firestore:rules
+//
+// Note: this prototype has no Firebase Auth. In production, replace
+// `request.auth != null` with professor-role claims and `isStudent()` helpers.
+// For now, rules validate data shape and lengths only.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── state/overrides ──────────────────────────────────────────────────────
+    // Written only by the professor view. Without Auth we cannot enforce the
+    // view-check server-side, but we validate the document structure strictly.
+    match /state/overrides {
+      allow read: if true;
+      allow write: if
+        // All four top-level keys must be maps
+        request.resource.data.lstatus      is map &&
+        request.resource.data.lnotes       is map &&
+        request.resource.data.lrooms       is map &&
+        request.resource.data.roomStatuses is map &&
+        // Reject oversized documents (defence against runaway writes)
+        request.resource.data.lstatus.size()      <= 50 &&
+        request.resource.data.lnotes.size()       <= 50 &&
+        request.resource.data.lrooms.size()       <= 50 &&
+        request.resource.data.roomStatuses.size() <= 50;
+    }
+
+    // ── groups ───────────────────────────────────────────────────────────────
+    match /groups/{groupId} {
+      allow read: if true;
+      allow create, update: if
+        request.resource.data.id   is string  &&
+        request.resource.data.sub  is string  &&
+        request.resource.data.sub.size()  >= 1 &&
+        request.resource.data.sub.size()  <= 120 &&
+        request.resource.data.room is string  &&
+        request.resource.data.room.size()  >= 1 &&
+        request.resource.data.room.size()  <= 10 &&
+        request.resource.data.time is string  &&
+        request.resource.data.max  is number  &&
+        request.resource.data.max  >= 1 &&
+        request.resource.data.max  <= 50 &&
+        request.resource.data.mem  is number  &&
+        request.resource.data.mem  >= 0;
+      allow delete: if true;
+    }
+
+    // ── bookings ─────────────────────────────────────────────────────────────
+    match /bookings/{bookingId} {
+      allow read: if true;
+      allow create: if
+        request.resource.data.id        is string &&
+        request.resource.data.room      is string &&
+        request.resource.data.room.size() >= 1 &&
+        request.resource.data.room.size() <= 10 &&
+        request.resource.data.purpose   is string &&
+        request.resource.data.purpose.size() <= 100 &&
+        request.resource.data.startTime is string &&
+        request.resource.data.durationM is number &&
+        request.resource.data.durationM >= 15 &&
+        request.resource.data.durationM <= 480 &&
+        request.resource.data.size      is number &&
+        request.resource.data.size      >= 1 &&
+        (
+          !('note' in request.resource.data) ||
+          (request.resource.data.note is string &&
+           request.resource.data.note.size() <= 300)
+        );
+      allow delete: if true;
+    }
+
+    // ── deny everything else ─────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

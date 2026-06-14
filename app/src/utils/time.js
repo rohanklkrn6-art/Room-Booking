@@ -4,11 +4,6 @@ import { ALL_LECTS } from '../data/lectures';
 export const UNI_OPEN_M  = 8 * 60;   // 08:00
 export const UNI_CLOSE_M = 20 * 60;  // 20:00
 
-// Fixed demo scenario: Wednesday at 12:00.
-// Business English cancelled → A0.13 free alert is always visible.
-export const DEMO_TODAY_IDX = 2; // Wednesday
-export const DEMO_NOW_M     = 720; // 12:00
-
 export function t2m(t) {
   if (!t) return 0;
   const [h, m] = t.split(':').map(Number);
@@ -21,23 +16,25 @@ export function m2t(minutes) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-// Always returns DEMO_TODAY_IDX so the pitch scenario is always visible.
-export function getTodayIndex() {
-  return DEMO_TODAY_IDX;
-}
+// ── Demo mode ─────────────────────────────────────────────────────────────────
+// Pin the prototype to Wednesday at 12:00 so the pitch scenario is always
+// visible regardless of the device's actual date/time.
+// On presentation day (17 June 2026) the real day is also Wednesday (index 2),
+// so this is correct on the day too.
+const DEMO_DAY   = 2;        // Wednesday
+const DEMO_NOW_M = 12 * 60;  // 12:00
 
-// Always returns DEMO_NOW_M (12:00) for the demo.
-export function getNowMinutes() {
-  return DEMO_NOW_M;
-}
+// Returns Mon=0 … Fri=4 (pinned to Wednesday for demo).
+export function getTodayIndex() { return DEMO_DAY; }
 
-export function getInitialSelDay() {
-  return getTodayIndex();
-}
+// Returns current time as minutes since midnight (pinned to 12:00 for demo).
+export function getNowMinutes() { return DEMO_NOW_M; }
+
+export function getInitialSelDay() { return DEMO_DAY; }
 
 // Returns the Monday of the week at wkOff relative to real today.
-// Mirrors the same logic used in CalendarStrip so dates are always consistent.
-function getWeekMonday(wkOff) {
+// Shared by CalendarStrip and date-utility functions to guarantee consistent date math.
+export function getWeekMonday(wkOff) {
   const today = new Date();
   const dow = (today.getDay() + 6) % 7; // Mon=0 … Fri=4
   const mon = new Date(today);
@@ -108,16 +105,43 @@ export function computeLectureStatus(lecture, isToday, lstatus, nowM) {
   return 'past';
 }
 
+// Returns the room a lecture is currently assigned to, accounting for professor overrides.
+export function getEffectiveRoom(lecture, lrooms) {
+  return lrooms[lecture.id] ?? lecture.room;
+}
+
+// Returns all ROOMS that have no conflicting lecture during [t, e] on a given day.
+// excludeLectureId: the lecture being moved (ignored so it doesn't block its own old room).
+export function getFreeRoomsForSlot(allLectures, t, e, excludeLectureId, lstatus, lrooms) {
+  const startM = t2m(t);
+  const endM   = t2m(e);
+  const occupied = new Set();
+
+  (allLectures || []).forEach(l => {
+    if (l.id === excludeLectureId) return;
+    const eff = lstatus[l.id] ?? l.st;
+    if (eff === 'cancelled' || eff === 'online') return;
+    const effRoom = lrooms[l.id] ?? l.room;
+    const ls = t2m(l.t);
+    const le = t2m(l.e);
+    if (startM < le && endM > ls) occupied.add(effRoom);
+  });
+
+  return ROOMS.filter(r => !occupied.has(r.id));
+}
+
 // Pure derivation of room status from the full lecture schedule and current overrides.
 // Called for every room on today's date — no "roomInToday" guard needed.
-function computeRoomStatusForDay(roomId, allLectures, lstatus, nowM, rs) {
+function computeRoomStatusForDay(roomId, allLectures, lstatus, lrooms, nowM, rs) {
   const room = ROOMS.find(r => r.id === roomId);
   const cap  = room ? room.cap : 30;
 
   // Only include lectures that are active (not cancelled, not moved online)
+  // and whose effective room (accounting for prof room-change overrides) is this room.
   const roomLects = (allLectures || [])
     .filter(l => {
-      if (l.room !== roomId) return false;
+      const effRoom = lrooms[l.id] ?? l.room;
+      if (effRoom !== roomId) return false;
       const eff = lstatus[l.id] ?? l.st;
       return eff !== 'cancelled' && eff !== 'online';
     })
@@ -169,6 +193,7 @@ export function getRoomStatus(roomId, state) {
       roomId,
       ALL_LECTS[state.selDay] || [],
       state.lstatus,
+      state.lrooms || {},
       state.nowM,
       rs,
     );
@@ -187,10 +212,11 @@ export function getRoomStatus(roomId, state) {
 // Returns true if the given room has an active (non-cancelled, non-online) lecture
 // that overlaps with timeStr (HH:MM) on the given set of day lectures.
 // Used by CreateGroupSheet to block conflicting group creation.
-export function isRoomOccupiedAtTime(roomId, timeStr, dayLects, lstatus) {
+export function isRoomOccupiedAtTime(roomId, timeStr, dayLects, lstatus, lrooms = {}) {
   const timeM = t2m(timeStr);
   return (dayLects || []).some(l => {
-    if (l.room !== roomId) return false;
+    const effRoom = lrooms[l.id] ?? l.room;
+    if (effRoom !== roomId) return false;
     const eff = lstatus[l.id] ?? l.st;
     if (eff === 'cancelled' || eff === 'online') return false;
     return timeM >= t2m(l.t) && timeM < t2m(l.e);

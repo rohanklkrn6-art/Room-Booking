@@ -6,8 +6,9 @@ const STATUS_META = {
   past:       { cls: 's-past',      label: 'Ended' },
 };
 
-export default function LectureCard({ lecture, effectiveStatus, onTap }) {
-  const meta = STATUS_META[effectiveStatus] || STATUS_META.upcoming;
+export default function LectureCard({ lecture, effectiveStatus, effectiveRoom, onTap }) {
+  const meta      = STATUS_META[effectiveStatus] || STATUS_META.upcoming;
+  const roomLabel = effectiveStatus === 'online' ? 'Online' : (effectiveRoom ?? lecture.room);
 
   return (
     <div className="lect-card" onClick={onTap}>
@@ -15,7 +16,7 @@ export default function LectureCard({ lecture, effectiveStatus, onTap }) {
         <div className="lc-name">{lecture.sub}</div>
         <span className={`st-badge ${meta.cls}`}>{meta.label}</span>
       </div>
-      <div className="lc-meta">{lecture.room} · {lecture.t}–{lecture.e}</div>
+      <div className="lc-meta">{roomLabel} · {lecture.t}–{lecture.e}</div>
       <div className="lc-stud">{lecture.n} students enrolled</div>
     </div>
   );

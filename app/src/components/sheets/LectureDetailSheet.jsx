@@ -1,6 +1,6 @@
 import { useApp } from '../../context/AppContext';
 import { LECTS } from '../../data/lectures';
-import { computeLectureStatus, getTodayIndex } from '../../utils/time';
+import { computeLectureStatus, getTodayIndex, getEffectiveRoom } from '../../utils/time';
 
 const STATUS_LABELS = {
   happening: 'Happening',
@@ -18,14 +18,15 @@ export default function LectureDetailSheet({ data }) {
   if (!lecture) return null;
 
   const isToday = state.wkOff === 0 && selDay === getTodayIndex();
-  const st   = computeLectureStatus(lecture, isToday, state.lstatus, state.nowM);
-  const note = state.lnotes[lecture.id];
+  const st          = computeLectureStatus(lecture, isToday, state.lstatus, state.nowM);
+  const note        = state.lnotes[lecture.id];
+  const effectiveRoom = st === 'online' ? 'Online' : getEffectiveRoom(lecture, state.lrooms);
 
   return (
     <>
       <div className="sh-sec">
         <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{lecture.sub}</div>
-        <div style={{ fontSize: 12, color: '#999' }}>🕐 {lecture.t}–{lecture.e} · 📍 {lecture.room}</div>
+        <div style={{ fontSize: 12, color: '#999' }}>🕐 {lecture.t}–{lecture.e} · 📍 {effectiveRoom}</div>
         <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>👤 {lecture.prof}</div>
       </div>
 

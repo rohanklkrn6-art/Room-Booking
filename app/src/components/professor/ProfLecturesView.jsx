@@ -1,11 +1,11 @@
 import { useApp } from '../../context/AppContext';
 import { LECTS } from '../../data/lectures';
 import LectureCard from './LectureCard';
-import { computeLectureStatus, getTodayIndex } from '../../utils/time';
+import { computeLectureStatus, getTodayIndex, getEffectiveRoom } from '../../utils/time';
 
 export default function ProfLecturesView() {
   const { state, dispatch } = useApp();
-  const { selDay, lstatus, wkOff, nowM } = state;
+  const { selDay, lstatus, lrooms, wkOff, nowM } = state;
 
   const lectures = LECTS[selDay] || [];
   const isToday  = wkOff === 0 && selDay === getTodayIndex();
@@ -35,7 +35,7 @@ export default function ProfLecturesView() {
         </div>
         <div className="stat-card">
           <div className="stat-num">{active}</div>
-          <div className="stat-lbl">Active</div>
+          <div className="stat-lbl">Happening</div>
         </div>
         <div className="stat-card">
           <div className="stat-num">{cancelled}</div>
@@ -52,6 +52,7 @@ export default function ProfLecturesView() {
           key={l.id}
           lecture={l}
           effectiveStatus={effectiveSt(l)}
+          effectiveRoom={getEffectiveRoom(l, lrooms)}
           onTap={() => dispatch({ type: 'OPEN_SHEET', payload: { sheetType: 'profLecture', sheetData: { lectureId: l.id } } })}
         />
       ))}

@@ -14,8 +14,8 @@ export const LECTS = {
     { id: 'lt1', sub: 'International Finance',            room: 'A1.14', prof: 'Prof. Schmidt', t: '09:45', e: '11:15', n: 22  },
     { id: 'lt2', sub: 'Business English',                 room: 'A0.13', prof: 'Ms. Smith',     t: '13:45', e: '15:15', n: 20  },
   ],
-  // Wednesday — demo day (DEMO_TODAY_IDX = 2, DEMO_NOW_M = 720 / 12:00)
-  // lw1 is happening, lw2 is cancelled (→ A0.13 free alert), lw3 is online
+  // Wednesday — pitch demo day
+  // At 12:00: lw1 (ERP Systems) has just ended, lw2 is cancelled → A0.13 free, lw3 is online
   2: [
     { id: 'lw1', sub: 'ERP Systems',                      room: 'B1.05', prof: 'Prof. Huber',   t: '09:45', e: '11:15', n: 22  },
     { id: 'lw2', sub: 'Business English for Managers',    room: 'A0.13', prof: 'Ms. Smith',     t: '11:30', e: '13:00', st: 'cancelled', n: 20 },

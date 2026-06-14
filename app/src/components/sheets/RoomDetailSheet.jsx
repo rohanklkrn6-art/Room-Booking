@@ -1,11 +1,12 @@
+import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ROOMS } from '../../data/rooms';
-import { getRoomStatus } from '../../utils/time';
+import { getRoomStatus, getTodayIndex } from '../../utils/time';
 
 const BADGE = {
   free: { cls: 'b-free', label: 'Free' },
   few:  { cls: 'b-few',  label: 'Few Seats' },
-  soon: { cls: 'b-soon', label: 'Soon Free' },
+  soon: { cls: 'b-soon', label: 'Soon Occupied' },
   occ:  { cls: 'b-occ',  label: 'Occupied' },
 };
 
@@ -18,13 +19,23 @@ function pctColor(pct, prefix) {
 export default function RoomDetailSheet({ data }) {
   const { state, dispatch } = useApp();
   const room = ROOMS.find(r => r.id === data.roomId);
+
+  // Incrementing "last updated" counter for IoT data (resets when sheet opens)
+  const [minAgo, setMinAgo] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setMinAgo(p => p + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  const updatedLabel = minAgo === 0 ? 'Just now' : `${minAgo}m ago`;
+
   if (!room) return null;
 
-  const rs = getRoomStatus(room.id, state);
-  const badge = BADGE[rs.st] || BADGE.occ;
-  const occPct = Math.min(100, Math.round((rs.occ / room.cap) * 100));
-  const isProf = state.view === 'professor';
-  const canBook = isProf && rs.st !== 'occ';
+  const nowState = { ...state, wkOff: 0, selDay: getTodayIndex() };
+  const rs       = getRoomStatus(room.id, nowState);
+  const badge    = BADGE[rs.st] || BADGE.occ;
+  const occPct   = Math.min(100, Math.round((rs.occ / room.cap) * 100));
+  const isProf   = state.view === 'professor';
+  const canBook  = isProf && rs.st !== 'occ';
 
   return (
     <>
@@ -53,7 +64,10 @@ export default function RoomDetailSheet({ data }) {
       </div>
 
       <div className="sh-sec">
-        <div className="sh-lbl">Occupancy last 2 hours</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+          <div className="sh-lbl" style={{ margin: 0 }}>Occupancy last 2 hours</div>
+          <span style={{ fontSize: 9, color: '#bbb' }}>Updated {updatedLabel}</span>
+        </div>
         <div className="iot-graph">
           {(rs.iot || []).map((val, i) => {
             const bp = Math.round((val / room.cap) * 100);
@@ -62,7 +76,7 @@ export default function RoomDetailSheet({ data }) {
               <div
                 key={i}
                 className={`iot-bar ${pctColor(bp, 'ib')}`}
-                style={{ height: h }}
+                style={{ height: h, animationDelay: `${i * 50}ms` }}
               />
             );
           })}

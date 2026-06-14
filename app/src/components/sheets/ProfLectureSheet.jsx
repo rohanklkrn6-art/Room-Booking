@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { LECTS } from '../../data/lectures';
+import { LECTS, ALL_LECTS } from '../../data/lectures';
+import { getEffectiveRoom, getFreeRoomsForSlot } from '../../utils/time';
+import ConfirmModal from '../ConfirmModal';
+import { sanitise } from '../../utils/sanitise';
 
 const OPTS = [
   { key: 'happening', icon: '✅', label: 'Happening' },
@@ -20,32 +23,66 @@ export default function ProfLectureSheet({ data }) {
   const { state, dispatch } = useApp();
   const lecture = findLecture(data.lectureId);
 
-  // hooks must be called unconditionally before any early return
   const currentSt = lecture
     ? (state.lstatus[lecture.id] ?? (['cancelled', 'online'].includes(lecture.st) ? lecture.st : 'happening'))
     : 'happening';
-  const [picked, setPicked] = useState(currentSt);
-  const [msg, setMsg] = useState('');
+
+  const [picked,         setPicked]         = useState(currentSt);
+  const [msg,            setMsg]            = useState('');
+  const [showRoomPicker, setShowRoomPicker] = useState(false);
+  const [newRoomId,      setNewRoomId]      = useState('');
+  const [confirmOpen,    setConfirmOpen]    = useState(false);
 
   if (!lecture) return null;
 
-  function send() {
-    dispatch({ type: 'SET_LECT_STATUS', payload: { id: lecture.id, status: picked, note: msg } });
+  const effectiveRoom = getEffectiveRoom(lecture, state.lrooms);
+  const displayRoom   = (newRoomId && newRoomId !== effectiveRoom) ? newRoomId : effectiveRoom;
+
+  const freeRooms = getFreeRoomsForSlot(
+    ALL_LECTS[state.selDay] || [],
+    lecture.t,
+    lecture.e,
+    lecture.id,
+    state.lstatus,
+    state.lrooms,
+  );
+
+  const statusChanged = picked !== currentSt;
+  const roomChanged   = !!newRoomId && newRoomId !== effectiveRoom;
+  const hasChange     = statusChanged || roomChanged;
+
+  function doSend() {
+    // Combine status + optional room change into one action so both share
+    // a single pending write and a single undo snapshot.
+    dispatch({
+      type: 'SET_LECT_STATUS',
+      payload: {
+        id:      lecture.id,
+        status:  picked,
+        note:    sanitise(msg, 300),
+        ...(roomChanged && { newRoom: newRoomId }),
+      },
+    });
     dispatch({ type: 'CLOSE_SHEET' });
-    dispatch({ type: 'SHOW_TOAST', payload: 'Status updated · Students notified' });
   }
+
+  const confirmBody = [
+    statusChanged && `Status → ${picked}`,
+    roomChanged   && `Room → ${newRoomId}`,
+    sanitise(msg, 300).trim() && `Note: "${sanitise(msg, 60)}"`,
+  ].filter(Boolean).join(' · ');
 
   return (
     <>
       <div className="sh-sec">
         <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{lecture.sub}</div>
         <div style={{ fontSize: 12, color: '#999' }}>
-          🕐 {lecture.t}–{lecture.e} · 📍 {lecture.room} · 👥 {lecture.n} students
+          🕐 {lecture.t}–{lecture.e} · 📍 {displayRoom} · 👥 {lecture.n} students
         </div>
       </div>
 
       <div className="sh-sec">
-        <div className="info-note">📢 Your update will be sent immediately to all students.</div>
+        <div className="info-note">📢 Your update will be sent immediately to all enrolled students.</div>
       </div>
 
       <div className="sh-sec">
@@ -64,19 +101,77 @@ export default function ProfLectureSheet({ data }) {
       </div>
 
       <div className="sh-sec">
-        <div className="sh-lbl">Message (optional)</div>
+        <div className="sh-lbl">Room</div>
+        {!showRoomPicker ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>📍 {displayRoom}</span>
+            <button
+              style={{ fontSize: 11, color: '#E8821A', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+              onClick={() => setShowRoomPicker(true)}
+            >
+              Change room →
+            </button>
+          </div>
+        ) : (
+          <>
+            {freeRooms.length > 0 ? (
+              <select
+                className="sh-sel"
+                value={newRoomId || ''}
+                onChange={e => setNewRoomId(e.target.value)}
+              >
+                <option value="">Keep current · {effectiveRoom}</option>
+                {freeRooms.map(r => (
+                  <option key={r.id} value={r.id}>
+                    {r.id} · {r.type} · {r.cap} seats
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>No free rooms during this slot</div>
+            )}
+            <button
+              style={{ fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 0', fontFamily: 'Inter, sans-serif' }}
+              onClick={() => { setShowRoomPicker(false); setNewRoomId(''); }}
+            >
+              ✕ Cancel room change
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="sh-sec">
+        <div className="sh-lbl">Message to students (optional, max 300 chars)</div>
         <textarea
           className="sh-ta"
-          placeholder="Message to students…"
+          placeholder="e.g. Class starts 15 min late…"
           value={msg}
+          maxLength={300}
           onChange={e => setMsg(e.target.value)}
         />
       </div>
 
       <div className="sh-btn-row">
         <button className="btn-sec" onClick={() => dispatch({ type: 'CLOSE_SHEET' })}>Cancel</button>
-        <button className="btn-send" onClick={send}>Send</button>
+        <button
+          className="btn-send"
+          disabled={!hasChange}
+          style={!hasChange ? { opacity: 0.5, cursor: 'default' } : {}}
+          onClick={() => { if (hasChange) setConfirmOpen(true); }}
+        >
+          Send update
+        </button>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        title="Send update to students?"
+        body={confirmBody}
+        confirmLabel="Send"
+        danger={false}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => { setConfirmOpen(false); doSend(); }}
+      />
     </>
   );
 }

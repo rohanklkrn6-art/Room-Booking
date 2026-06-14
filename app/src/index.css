@@ -193,8 +193,57 @@ body {
 .sh-rm-meta { font-size: 12px; color: #999; margin-top: 2px; }
 
 /* ── Toast ── */
-.toast { position: absolute; top: 72px; left: 50%; transform: translateX(-50%) translateY(-90px); background: #1a1a1a; color: white; padding: 9px 16px; border-radius: 18px; font-size: 12px; font-weight: 500; z-index: 999; transition: transform 0.3s ease; white-space: nowrap; font-family: 'Inter', sans-serif; pointer-events: none; }
-.toast.show { transform: translateX(-50%) translateY(0); }
+.toast { position: absolute; top: 72px; left: 50%; transform: translateX(-50%) translateY(-6px); background: #1a1a1a; color: white; padding: 9px 16px; border-radius: 18px; font-size: 12px; font-weight: 500; z-index: 999; white-space: nowrap; font-family: 'Inter', sans-serif; pointer-events: none; opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease; display: flex; align-items: center; gap: 8px; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.with-undo { pointer-events: all; }
+.toast-undo { background: none; border: 1px solid rgba(255,255,255,0.4); color: white; border-radius: 10px; padding: 2px 10px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; flex-shrink: 0; }
+
+/* ── Confirm modal ── */
+.modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.modal { background: white; border-radius: 14px; padding: 20px; width: 100%; max-width: 300px; }
+.modal-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; color: #111; }
+.modal-body  { font-size: 12px; color: #666; margin-bottom: 16px; line-height: 1.5; }
+.modal-btns  { display: flex; gap: 8px; }
+.modal-cancel  { flex: 1; padding: 9px; border: 1px solid #ddd; border-radius: 9px; font-size: 13px; font-weight: 600; background: white; cursor: pointer; font-family: 'Inter', sans-serif; }
+.modal-confirm { flex: 1; padding: 9px; border: none; border-radius: 9px; font-size: 13px; font-weight: 600; background: #e53e3e; color: white; cursor: pointer; font-family: 'Inter', sans-serif; }
+.modal-confirm.safe { background: var(--or); }
+
+/* ── Offline banner ── */
+.offline-banner { position: absolute; bottom: 48px; left: 0; right: 0; background: #1a1a1a; color: white; font-size: 11px; font-weight: 600; text-align: center; padding: 7px 12px; z-index: 150; font-family: 'Inter', sans-serif; }
+
+/* ── First-load hint overlay ── */
+.hint-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.65); z-index: 300; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 80px; cursor: pointer; }
+.hint-box { background: white; border-radius: 14px; padding: 18px 20px; text-align: center; max-width: 240px; }
+.hint-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.hint-body  { font-size: 12px; color: #666; line-height: 1.5; }
+.hint-dismiss { font-size: 10px; color: #bbb; margin-top: 10px; }
+
+/* ── Skeleton loader ── */
+@keyframes shimmer {
+  0%   { background-position: -300px 0; }
+  100% { background-position:  300px 0; }
+}
+.skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 600px 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
+.skel-card { margin: 3px 7px; border-radius: 10px; overflow: hidden; }
+.skel-line  { height: 12px; margin-bottom: 8px; }
+.skel-line.short { width: 60%; }
+.skel-line.tall  { height: 18px; }
+.skel-block { position: absolute; left: 3px; right: 3px; border-radius: 6px; }
+
+/* ── IoT bar entrance animation ── */
+@keyframes barGrow {
+  from { transform: scaleY(0); opacity: 0; }
+  to   { transform: scaleY(1); opacity: 1; }
+}
+.iot-bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 3px; transform-origin: bottom; animation: barGrow 0.4s ease forwards; }
+
+/* ── Live dot pulse ring ── */
+.live-dot { display: inline-block; width: 8px; height: 8px; background: #22c55e; border-radius: 50%; margin-right: 5px; position: relative; vertical-align: middle; }
+.live-dot::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid #22c55e; animation: pingRing 1.5s ease-out infinite; }
+@keyframes pingRing { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(2.2); opacity: 0; } }
+
+/* ── Last-updated row ── */
+.rooms-meta { display: flex; justify-content: space-between; align-items: center; padding: 3px 8px 4px; font-size: 10px; color: #bbb; }
 
 /* ── Bottom navigation ── */
 .bottom-nav { display: flex; background: var(--or); flex-shrink: 0; }

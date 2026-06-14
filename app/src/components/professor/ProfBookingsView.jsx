@@ -12,12 +12,11 @@ export default function ProfBookingsView() {
   return (
     <div className="content">
       <div className="bk-day-label">{DAY_NAMES[selDay] ?? 'Today'}</div>
-      {dayBookings.length === 0 && (
-        <div className="no-res">No bookings for this day</div>
+      {dayBookings.length === 0 ? (
+        <div className="no-res">No room bookings yet</div>
+      ) : (
+        dayBookings.map(b => <BookingCard key={b.id} booking={b} />)
       )}
-      {dayBookings.map(b => (
-        <BookingCard key={b.id} booking={b} />
-      ))}
     </div>
   );
 }

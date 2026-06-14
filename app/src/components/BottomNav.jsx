@@ -2,8 +2,8 @@ import { useApp } from '../context/AppContext';
 
 const NAV_ITEMS = [
   { icon: '⊞', label: 'Home' },
-  { icon: '📰', label: 'Beiträge' },
-  { icon: '👤', label: 'Profil' },
+  { icon: '📰', label: 'Posts' },
+  { icon: '👤', label: 'Profile' },
 ];
 
 export default function BottomNav() {
