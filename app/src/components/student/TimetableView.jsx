@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { LECTS } from '../../data/lectures';
 import TimetableGrid from './TimetableGrid';
@@ -31,7 +32,18 @@ function TimetableSkeleton() {
 
 export default function TimetableView() {
   const { state, dispatch } = useApp();
-  const { selDay, wkOff, hydrated, lstatus, lrooms, nowM } = state;
+  const { selDay, wkOff, hydrated, lstatus, lnotes, lrooms, nowM } = state;
+  // Key = lectureId::status::note — changes when professor sends a new update,
+  // even for the same lecture, so the banner reappears after new professor action.
+  const [dismissed, setDismissed] = useState(new Set());
+
+  function alertKey(l) {
+    return `${l.id}::${lstatus[l.id] ?? l.st}::${lnotes?.[l.id] ?? ''}`;
+  }
+  function dismissAlert(e, l) {
+    e.stopPropagation();
+    setDismissed(prev => new Set([...prev, alertKey(l)]));
+  }
 
   if (isSemesterOver(wkOff, selDay)) {
     return (
@@ -65,10 +77,11 @@ export default function TimetableView() {
   const lectures = LECTS[selDay] || [];
   const isToday  = wkOff === 0 && selDay === getTodayIndex();
 
-  // Alert banners for cancelled lectures on today — key pitch scenario.
-  // Tap sends student straight to the Rooms tab to find the now-free room.
   const cancelledToday = isToday
-    ? lectures.filter(l => computeLectureStatus(l, true, lstatus, nowM) === 'cancelled')
+    ? lectures.filter(l =>
+        computeLectureStatus(l, true, lstatus, nowM) === 'cancelled' &&
+        !dismissed.has(alertKey(l))
+      )
     : [];
 
   if (lectures.length === 0) {
@@ -88,7 +101,13 @@ export default function TimetableView() {
           onClick={() => dispatch({ type: 'SET_ST_TAB', payload: 1 })}
         >
           <span>🚫 {l.sub} cancelled · {getEffectiveRoom(l, lrooms)} now free</span>
-          <span style={{ fontSize: 10, opacity: 0.7 }}>→ Rooms</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <span style={{ fontSize: 10, opacity: 0.7 }}>→ Rooms</span>
+            <span
+              style={{ fontSize: 16, lineHeight: 1, color: '#a0692a', padding: '0 2px', cursor: 'pointer' }}
+              onClick={e => dismissAlert(e, l)}
+            >×</span>
+          </div>
         </div>
       ))}
       <TimetableGrid />

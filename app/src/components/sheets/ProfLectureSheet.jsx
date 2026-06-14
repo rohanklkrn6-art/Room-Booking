@@ -52,8 +52,6 @@ export default function ProfLectureSheet({ data }) {
   const hasChange     = statusChanged || roomChanged;
 
   function doSend() {
-    // Combine status + optional room change into one action so both share
-    // a single pending write and a single undo snapshot.
     dispatch({
       type: 'SET_LECT_STATUS',
       payload: {
@@ -74,83 +72,88 @@ export default function ProfLectureSheet({ data }) {
 
   return (
     <>
-      <div className="sh-sec">
+      {/* Title pinned at top */}
+      <div className="sh-title">
         <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{lecture.sub}</div>
         <div style={{ fontSize: 12, color: '#999' }}>
           🕐 {lecture.t}–{lecture.e} · 📍 {displayRoom} · 👥 {lecture.n} students
         </div>
       </div>
 
-      <div className="sh-sec">
-        <div className="info-note">📢 Your update will be sent immediately to all enrolled students.</div>
-      </div>
+      {/* Scrollable content */}
+      <div className="sh-scroll">
+        <div className="sh-sec">
+          <div className="info-note">📢 Your update will be sent immediately to all enrolled students.</div>
+        </div>
 
-      <div className="sh-sec">
-        <div className="sh-lbl">Update status</div>
-        <div className="sh-row">
-          {OPTS.map(o => (
-            <div
-              key={o.key}
-              className={`st-opt${picked === o.key ? ' sel' : ''}`}
-              onClick={() => setPicked(o.key)}
-            >
-              {o.icon}<br />{o.label}
+        <div className="sh-sec">
+          <div className="sh-lbl">Update status</div>
+          <div className="sh-row">
+            {OPTS.map(o => (
+              <div
+                key={o.key}
+                className={`st-opt${picked === o.key ? ' sel' : ''}`}
+                onClick={() => setPicked(o.key)}
+              >
+                {o.icon}<br />{o.label}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="sh-sec">
+          <div className="sh-lbl">Room</div>
+          {!showRoomPicker ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>📍 {displayRoom}</span>
+              <button
+                style={{ fontSize: 11, color: '#E8821A', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+                onClick={() => setShowRoomPicker(true)}
+              >
+                Change room →
+              </button>
             </div>
-          ))}
+          ) : (
+            <>
+              {freeRooms.length > 0 ? (
+                <select
+                  className="sh-sel"
+                  value={newRoomId || ''}
+                  onChange={e => setNewRoomId(e.target.value)}
+                >
+                  <option value="">Keep current · {effectiveRoom}</option>
+                  {freeRooms.map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.id} · {r.type} · {r.cap} seats
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>No free rooms during this slot</div>
+              )}
+              <button
+                style={{ fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 0', fontFamily: 'Inter, sans-serif' }}
+                onClick={() => { setShowRoomPicker(false); setNewRoomId(''); }}
+              >
+                ✕ Cancel room change
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="sh-sec">
+          <div className="sh-lbl">Message to students (optional, max 300 chars)</div>
+          <textarea
+            className="sh-ta"
+            placeholder="e.g. Class starts 15 min late…"
+            value={msg}
+            maxLength={300}
+            onChange={e => setMsg(e.target.value)}
+          />
         </div>
       </div>
 
-      <div className="sh-sec">
-        <div className="sh-lbl">Room</div>
-        {!showRoomPicker ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>📍 {displayRoom}</span>
-            <button
-              style={{ fontSize: 11, color: '#E8821A', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
-              onClick={() => setShowRoomPicker(true)}
-            >
-              Change room →
-            </button>
-          </div>
-        ) : (
-          <>
-            {freeRooms.length > 0 ? (
-              <select
-                className="sh-sel"
-                value={newRoomId || ''}
-                onChange={e => setNewRoomId(e.target.value)}
-              >
-                <option value="">Keep current · {effectiveRoom}</option>
-                {freeRooms.map(r => (
-                  <option key={r.id} value={r.id}>
-                    {r.id} · {r.type} · {r.cap} seats
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>No free rooms during this slot</div>
-            )}
-            <button
-              style={{ fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 0', fontFamily: 'Inter, sans-serif' }}
-              onClick={() => { setShowRoomPicker(false); setNewRoomId(''); }}
-            >
-              ✕ Cancel room change
-            </button>
-          </>
-        )}
-      </div>
-
-      <div className="sh-sec">
-        <div className="sh-lbl">Message to students (optional, max 300 chars)</div>
-        <textarea
-          className="sh-ta"
-          placeholder="e.g. Class starts 15 min late…"
-          value={msg}
-          maxLength={300}
-          onChange={e => setMsg(e.target.value)}
-        />
-      </div>
-
+      {/* Buttons pinned at bottom */}
       <div className="sh-btn-row">
         <button className="btn-sec" onClick={() => dispatch({ type: 'CLOSE_SHEET' })}>Cancel</button>
         <button

@@ -20,7 +20,6 @@ export default function RoomDetailSheet({ data }) {
   const { state, dispatch } = useApp();
   const room = ROOMS.find(r => r.id === data.roomId);
 
-  // Incrementing "last updated" counter for IoT data (resets when sheet opens)
   const [minAgo, setMinAgo] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setMinAgo(p => p + 1), 60_000);
@@ -39,6 +38,7 @@ export default function RoomDetailSheet({ data }) {
 
   return (
     <>
+      {/* Title pinned at top */}
       <div className="sh-rm-hdr">
         <div>
           <div className="sh-rm-name">{room.id}</div>
@@ -47,54 +47,58 @@ export default function RoomDetailSheet({ data }) {
         <span className={`rm-badge ${badge.cls}`}>{badge.label}</span>
       </div>
 
-      <div className="sh-sec">
-        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 5 }}>
-          <span className="live-dot" />Live Occupancy
+      {/* Scrollable content */}
+      <div className="sh-scroll">
+        <div className="sh-sec">
+          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 5 }}>
+            <span className="live-dot" />Live Occupancy
+          </div>
+          <div className="occ-wrap" style={{ height: 8 }}>
+            <div
+              className={`occ-bar ${pctColor(occPct, 'occ')}`}
+              style={{ width: `${occPct}%`, height: 8 }}
+            />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#999', marginTop: 3 }}>
+            <span>{rs.occ === 0 ? `Empty · ${room.cap} seats` : `${rs.occ} / ${room.cap} seats occupied`}</span>
+            <span>{occPct}%</span>
+          </div>
         </div>
-        <div className="occ-wrap" style={{ height: 8 }}>
-          <div
-            className={`occ-bar ${pctColor(occPct, 'occ')}`}
-            style={{ width: `${occPct}%`, height: 8 }}
-          />
+
+        <div className="sh-sec">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+            <div className="sh-lbl" style={{ margin: 0 }}>Occupancy last 2 hours</div>
+            <span style={{ fontSize: 9, color: '#bbb' }}>Updated {updatedLabel}</span>
+          </div>
+          <div className="iot-graph">
+            {(rs.iot || []).map((val, i) => {
+              const bp = Math.round((val / room.cap) * 100);
+              const h  = Math.max(3, Math.round((bp / 100) * 40));
+              return (
+                <div
+                  key={i}
+                  className={`iot-bar ${pctColor(bp, 'ib')}`}
+                  style={{ height: h, animationDelay: `${i * 50}ms` }}
+                />
+              );
+            })}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#bbb' }}>
+            <span>2h ago</span><span>now</span>
+          </div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#999', marginTop: 3 }}>
-          <span>{rs.occ === 0 ? `Empty · ${room.cap} seats` : `${rs.occ} / ${room.cap} seats occupied`}</span>
-          <span>{occPct}%</span>
+
+        <div className="sh-sec">
+          <div className="sh-lbl">Facilities</div>
+          <div className="feat-tags">
+            {room.feat.map(f => (
+              <span key={f} className="feat-tag" style={{ fontSize: 11, padding: '3px 7px' }}>{f}</span>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="sh-sec">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-          <div className="sh-lbl" style={{ margin: 0 }}>Occupancy last 2 hours</div>
-          <span style={{ fontSize: 9, color: '#bbb' }}>Updated {updatedLabel}</span>
-        </div>
-        <div className="iot-graph">
-          {(rs.iot || []).map((val, i) => {
-            const bp = Math.round((val / room.cap) * 100);
-            const h  = Math.max(3, Math.round((bp / 100) * 40));
-            return (
-              <div
-                key={i}
-                className={`iot-bar ${pctColor(bp, 'ib')}`}
-                style={{ height: h, animationDelay: `${i * 50}ms` }}
-              />
-            );
-          })}
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#bbb' }}>
-          <span>2h ago</span><span>now</span>
-        </div>
-      </div>
-
-      <div className="sh-sec">
-        <div className="sh-lbl">Facilities</div>
-        <div className="feat-tags">
-          {room.feat.map(f => (
-            <span key={f} className="feat-tag" style={{ fontSize: 11, padding: '3px 7px' }}>{f}</span>
-          ))}
-        </div>
-      </div>
-
+      {/* Buttons pinned at bottom */}
       <div className="sh-btn-row">
         <button className="btn-sec" onClick={() => dispatch({ type: 'CLOSE_SHEET' })}>Close</button>
         {canBook && (

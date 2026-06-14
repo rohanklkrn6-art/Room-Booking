@@ -24,7 +24,6 @@ export default function CreateGroupSheet() {
       return;
     }
 
-    // Block group creation if the chosen room has a lecture at the chosen time
     const dayLects = ALL_LECTS[getTodayIndex()] || [];
     if (isRoomOccupiedAtTime(roomId, time, dayLects, state.lstatus, state.lrooms)) {
       setError(`${roomId} has a lecture at ${time}. Pick a different room or time.`);
@@ -51,55 +50,57 @@ export default function CreateGroupSheet() {
 
   return (
     <>
-      <div className="sh-sec">
-        <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 3 }}>Create study group</div>
+      <div className="sh-title">
+        <div style={{ fontSize: 17, fontWeight: 700 }}>Create study group</div>
       </div>
 
-      <div className="sh-sec">
-        <div className="sh-lbl">Subject / Topic</div>
-        <input
-          className="sh-inp"
-          placeholder="e.g. International Finance prep"
-          value={subject}
-          onChange={e => { setSubject(e.target.value); setError(''); }}
-        />
-      </div>
-
-      <div className="sh-sec">
-        <div className="sh-lbl">Room</div>
-        <select className="sh-sel" value={roomId} onChange={e => { setRoomId(e.target.value); setError(''); }}>
-          {roomList.map(r => (
-            <option key={r.id} value={r.id}>{r.id} · {r.type} ({r.cap} seats)</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="sh-sec">
-        <div className="sh-lbl">Start time</div>
-        <input
-          className="sh-inp"
-          type="time"
-          value={time}
-          onChange={e => { setTime(e.target.value); setError(''); }}
-        />
-      </div>
-
-      <div className="sh-sec">
-        <div className="sh-lbl">Max group size</div>
-        <select className="sh-sel" value={maxSize} onChange={e => setMaxSize(e.target.value)}>
-          <option>2</option>
-          <option>3</option>
-          <option>5</option>
-          <option>8</option>
-          <option>10</option>
-        </select>
-      </div>
-
-      {error && (
+      <div className="sh-scroll">
         <div className="sh-sec">
-          <div className="sh-error">{error}</div>
+          <div className="sh-lbl">Subject / Topic</div>
+          <input
+            className="sh-inp"
+            placeholder="e.g. International Finance prep"
+            value={subject}
+            onChange={e => { setSubject(e.target.value); setError(''); }}
+          />
         </div>
-      )}
+
+        <div className="sh-sec">
+          <div className="sh-lbl">Room</div>
+          <select className="sh-sel" value={roomId} onChange={e => { setRoomId(e.target.value); setError(''); }}>
+            {roomList.map(r => (
+              <option key={r.id} value={r.id}>{r.id} · {r.type} ({r.cap} seats)</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="sh-sec">
+          <div className="sh-lbl">Start time</div>
+          <input
+            className="sh-inp"
+            type="time"
+            value={time}
+            onChange={e => { setTime(e.target.value); setError(''); }}
+          />
+        </div>
+
+        <div className="sh-sec">
+          <div className="sh-lbl">Max group size</div>
+          <select className="sh-sel" value={maxSize} onChange={e => setMaxSize(e.target.value)}>
+            <option>2</option>
+            <option>3</option>
+            <option>5</option>
+            <option>8</option>
+            <option>10</option>
+          </select>
+        </div>
+
+        {error && (
+          <div className="sh-sec">
+            <div className="sh-error">{error}</div>
+          </div>
+        )}
+      </div>
 
       <div className="sh-btn-row">
         <button className="btn-sec" onClick={() => dispatch({ type: 'CLOSE_SHEET' })}>Cancel</button>
